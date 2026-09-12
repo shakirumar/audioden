@@ -12,9 +12,11 @@ export default function Shop() {
 
   // Dynamic combined categories from store + all products
   const allCategories = useMemo(() => {
-    const list = [...categories];
-    products.forEach((p) => {
-      if (p.category && !list.some((c) => c.name.toLowerCase() === p.category.toLowerCase())) {
+    const list = (categories || [])
+      .filter((c) => Boolean(c && c.name))
+      .map((c) => ({ ...c }));
+    (products || []).forEach((p) => {
+      if (p.category && !list.some((c) => (c.name || '').toLowerCase() === p.category.toLowerCase())) {
         list.push({ id: 'cat-' + p.category, name: p.category, count: 1 });
       }
     });
@@ -23,9 +25,11 @@ export default function Shop() {
 
   // Dynamic combined brands from store + all products
   const allBrands = useMemo(() => {
-    const list = [...brands];
-    products.forEach((p) => {
-      if (p.brand && !list.some((b) => b.name.toLowerCase() === p.brand.toLowerCase())) {
+    const list = (brands || [])
+      .filter((b) => Boolean(b && b.name))
+      .map((b) => ({ ...b }));
+    (products || []).forEach((p) => {
+      if (p.brand && !list.some((b) => (b.name || '').toLowerCase() === p.brand.toLowerCase())) {
         list.push({ id: 'brand-' + p.brand, name: p.brand });
       }
     });
@@ -65,32 +69,32 @@ export default function Shop() {
 
   // Filter and Sort Logic
   const filteredProducts = useMemo(() => {
-    return products
+    return (products || [])
       .filter((product) => {
         // Search filter
         if (searchTerm.trim()) {
           const query = searchTerm.toLowerCase();
           const matches =
-            product.name.toLowerCase().includes(query) ||
-            product.brand.toLowerCase().includes(query) ||
-            product.category.toLowerCase().includes(query) ||
-            (product.description && product.description.toLowerCase().includes(query));
+            (product.name || '').toLowerCase().includes(query) ||
+            (product.brand || '').toLowerCase().includes(query) ||
+            (product.category || '').toLowerCase().includes(query) ||
+            (product.description || '').toLowerCase().includes(query);
           if (!matches) return false;
         }
 
         // Category filter (Matches category OR brand so that selecting a brand as category or vice-versa never shows 0)
         if (selectedCategory) {
           const catQuery = selectedCategory.trim().toLowerCase();
-          const matchesCategory = product.category?.toLowerCase() === catQuery;
-          const matchesBrand = product.brand?.toLowerCase() === catQuery;
+          const matchesCategory = (product.category || '').toLowerCase() === catQuery;
+          const matchesBrand = (product.brand || '').toLowerCase() === catQuery;
           if (!matchesCategory && !matchesBrand) return false;
         }
 
         // Brand filter
         if (selectedBrand) {
           const brandQuery = selectedBrand.trim().toLowerCase();
-          const matchesBrand = product.brand?.toLowerCase() === brandQuery;
-          const matchesCategory = product.category?.toLowerCase() === brandQuery;
+          const matchesBrand = (product.brand || '').toLowerCase() === brandQuery;
+          const matchesCategory = (product.category || '').toLowerCase() === brandQuery;
           if (!matchesBrand && !matchesCategory) return false;
         }
 
@@ -180,19 +184,21 @@ export default function Shop() {
                 <span>{products.length}</span>
               </button>
               {allCategories.map((cat) => {
-                const count = products.filter(
-                  (p) => p.category?.toLowerCase() === cat.name.toLowerCase() || p.brand?.toLowerCase() === cat.name.toLowerCase()
+                const catName = cat?.name || '';
+                if (!catName) return null;
+                const count = (products || []).filter(
+                  (p) => (p.category || '').toLowerCase() === catName.toLowerCase() || (p.brand || '').toLowerCase() === catName.toLowerCase()
                 ).length;
-                const isSelected = selectedCategory.toLowerCase() === cat.name.toLowerCase();
+                const isSelected = (selectedCategory || '').toLowerCase() === catName.toLowerCase();
                 return (
                   <button
-                    key={cat.id || cat.name}
-                    onClick={() => setSelectedCategory(cat.name)}
+                    key={cat.id || catName}
+                    onClick={() => setSelectedCategory(catName)}
                     className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex justify-between items-center ${
                       isSelected ? 'bg-amber-50 text-amber-700 font-bold' : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
-                    <span>{cat.name}</span>
+                    <span>{catName}</span>
                     <span className="text-[10px] text-gray-400">({count})</span>
                   </button>
                 );
@@ -215,18 +221,21 @@ export default function Shop() {
                 <span>All Brands</span>
               </button>
               {allBrands.map((b) => {
-                const count = products.filter(
-                  (p) => p.brand?.toLowerCase() === b.name.toLowerCase() || p.category?.toLowerCase() === b.name.toLowerCase()
+                const bName = b?.name || '';
+                if (!bName) return null;
+                const count = (products || []).filter(
+                  (p) => (p.brand || '').toLowerCase() === bName.toLowerCase() || (p.category || '').toLowerCase() === bName.toLowerCase()
                 ).length;
+                const isBrandSelected = (selectedBrand || '').toLowerCase() === bName.toLowerCase();
                 return (
                   <button
-                    key={b.id || b.name}
-                    onClick={() => setSelectedBrand(b.name)}
+                    key={b.id || bName}
+                    onClick={() => setSelectedBrand(bName)}
                     className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex justify-between items-center ${
-                      selectedBrand.toLowerCase() === b.name.toLowerCase() ? 'bg-amber-50 text-amber-700 font-bold' : 'text-gray-600 hover:bg-gray-50'
+                      isBrandSelected ? 'bg-amber-50 text-amber-700 font-bold' : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
-                    <span>{b.name}</span>
+                    <span>{bName}</span>
                     <span className="text-[10px] text-gray-400">({count})</span>
                   </button>
                 );

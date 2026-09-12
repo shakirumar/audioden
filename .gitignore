@@ -6,6 +6,7 @@
 # Packages and archives
 *.zip
 *.tar.gz
+upload-hostinger.ps1
 
 # Logs
 logs

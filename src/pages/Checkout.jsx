@@ -20,7 +20,7 @@ import {
 } from '../services/notificationService';
 
 export default function Checkout() {
-  const { items, getTotals, clearCart } = useCartStore();
+  const { items, getTotals, clearCart, coupon, applyCoupon, removeCoupon } = useCartStore();
   const { createOrder } = useProductStore();
   const { user, isAuthenticated, login, register: authRegister, loginAsDemoCustomer, addAddress } = useAuthStore();
   const { subtotal, discount, grandTotal } = getTotals();
@@ -29,6 +29,23 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
   const [notificationDispatched, setNotificationDispatched] = useState(false);
+
+  // Coupon state in Checkout
+  const [checkoutCouponInput, setCheckoutCouponInput] = useState('');
+  const [checkoutCouponFeedback, setCheckoutCouponFeedback] = useState(null);
+
+  const handleApplyCheckoutCoupon = (e) => {
+    e.preventDefault();
+    if (!checkoutCouponInput.trim()) return;
+    const res = applyCoupon(checkoutCouponInput);
+    setCheckoutCouponFeedback(res);
+    if (res.success) setCheckoutCouponInput('');
+  };
+
+  const handleQuickCheckoutCoupon = (code) => {
+    const res = applyCoupon(code);
+    setCheckoutCouponFeedback(res);
+  };
 
   // Inline Auth State for unauthenticated users
   const [authTab, setAuthTab] = useState('login'); // 'login' or 'register'
@@ -164,6 +181,8 @@ export default function Checkout() {
         shippingAddress: `${data.address}, ${data.landmark ? data.landmark + ', ' : ''}${data.city}, ${data.state} - ${data.pincode}`,
         items: formattedItems,
         totalAmount: grandTotal,
+        couponCode: coupon?.code || null,
+        discountAmount: discount || 0,
         paymentMethod:
           paymentMethod === 'cod'
             ? 'Cash on Delivery'
@@ -900,6 +919,82 @@ export default function Checkout() {
                   </span>
                 </div>
               ))}
+            </div>
+
+            {/* Apply Promo Code in Checkout */}
+            <div className="border-t border-gray-100 pt-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 flex items-center gap-1">
+                  <Tag className="w-3.5 h-3.5 text-amber-500" /> Apply Promo Code
+                </span>
+                {coupon && (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                    ✓ Applied
+                  </span>
+                )}
+              </div>
+
+              {coupon ? (
+                <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-mono font-bold text-emerald-950">🏷️ {coupon.code}</span>
+                    <span className="text-[11px] text-emerald-700 block">
+                      {coupon.title || 'Special Discount Active'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeCoupon();
+                      setCheckoutCouponFeedback({ success: false, message: 'Coupon removed' });
+                      setTimeout(() => setCheckoutCouponFeedback(null), 3000);
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800 underline font-bold"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={checkoutCouponInput}
+                      onChange={(e) => setCheckoutCouponInput(e.target.value.toUpperCase())}
+                      placeholder="e.g. WELCOME10"
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 font-mono uppercase bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCheckoutCoupon}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-lg flex-shrink-0 transition-colors"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                    <span>Quick:</span>
+                    {['WELCOME10', 'AUDIODEN5', 'OFFER1000'].map((qc) => (
+                      <button
+                        key={qc}
+                        type="button"
+                        onClick={() => handleQuickCheckoutCoupon(qc)}
+                        className="px-1.5 py-0.5 rounded bg-gray-100 hover:bg-amber-100 font-mono font-bold text-slate-800"
+                      >
+                        {qc}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {checkoutCouponFeedback && (
+                <p className={`text-[11px] font-medium ${
+                  checkoutCouponFeedback.success ? 'text-emerald-700' : 'text-blue-600'
+                }`}>
+                  {checkoutCouponFeedback.message}
+                </p>
+              )}
             </div>
 
             {/* Price Calculations */}

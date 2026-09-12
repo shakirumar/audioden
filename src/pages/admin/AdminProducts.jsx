@@ -436,8 +436,8 @@ export default function AdminProducts() {
 
     // Auto-create category in store if not present
     if (payload.category) {
-      const catExists = categories.some(
-        (c) => c.name.toLowerCase() === payload.category.toLowerCase()
+      const catExists = (categories || []).some(
+        (c) => (c?.name || '').toLowerCase() === payload.category.toLowerCase()
       );
       if (!catExists && addCategory) {
         addCategory({
@@ -450,8 +450,8 @@ export default function AdminProducts() {
 
     // Auto-create brand in store if not present
     if (payload.brand) {
-      const brandExists = brands.some(
-        (b) => b.name.toLowerCase() === payload.brand.toLowerCase()
+      const brandExists = (brands || []).some(
+        (b) => (b?.name || '').toLowerCase() === payload.brand.toLowerCase()
       );
       if (!brandExists && addBrand) {
         addBrand({

@@ -15,7 +15,7 @@ export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { products, reviews, addReview } = useProductStore();
-  const { addItem } = useCartStore();
+  const { addItem, coupon, applyCoupon, removeCoupon } = useCartStore();
   const { isInWishlist, toggleWishlist } = useWishlistStore();
 
   const product = products.find((p) => p.id === id) || products[0];
@@ -25,6 +25,25 @@ export default function ProductDetails() {
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
   const [pincode, setPincode] = useState('211002');
   const [pincodeCheckMessage, setPincodeCheckMessage] = useState('Delivery by tomorrow, 11 PM | Free');
+
+  // Coupon state
+  const [couponInput, setCouponInput] = useState('');
+  const [couponFeedback, setCouponFeedback] = useState(null);
+
+  const handleApplyCouponCode = (code) => {
+    if (!code || !code.trim()) return;
+    const res = applyCoupon(code);
+    setCouponFeedback(res);
+    if (res.success) {
+      setCouponInput('');
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    removeCoupon();
+    setCouponFeedback({ success: false, message: 'Coupon removed' });
+    setTimeout(() => setCouponFeedback(null), 3000);
+  };
 
   // Review Form state
   const [reviewName, setReviewName] = useState('');
@@ -330,12 +349,101 @@ export default function ProductDetails() {
             </button>
           </div>
 
-          {/* Flipkart / Amazon Style Available Bank Offers */}
-          <div className="space-y-2.5">
-            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5 text-amber-500" /> Available Offers
-            </h4>
-            <div className="space-y-2 text-xs text-slate-800">
+          {/* Flipkart / Amazon Style Available Bank Offers & Apply Coupon */}
+          <div className="space-y-3 p-4 bg-gradient-to-br from-amber-50/50 via-white to-orange-50/30 rounded-xl border border-amber-200/80 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-amber-600" /> Available Offers & Apply Coupon
+              </h4>
+              {coupon ? (
+                <span className="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                  ✓ {coupon.code} Active
+                </span>
+              ) : (
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                  Instant Savings
+                </span>
+              )}
+            </div>
+
+            {/* Quick Apply Coupon Pills */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-[11px] text-gray-500 font-semibold">Tap to apply:</span>
+                {[
+                  { code: 'WELCOME10', label: '10% Off First Order' },
+                  { code: 'AUDIODEN5', label: '5% Instant Store Discount' },
+                  { code: 'OFFER1000', label: 'Flat ₹1,000 Off' }
+                ].map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => handleApplyCouponCode(c.code)}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-mono font-bold transition-all ${
+                      coupon?.code === c.code
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-2xs'
+                        : 'border-dashed border-amber-400 bg-white hover:bg-amber-100/70 text-slate-800'
+                    }`}
+                    title={`Click to apply ${c.code}`}
+                  >
+                    <span>🏷️ {c.code}</span>
+                    <span className="text-[10px] font-sans text-amber-900 font-medium">({c.label})</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Coupon Input Form */}
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="Enter promo / coupon code..."
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 font-mono uppercase bg-white shadow-2xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyCouponCode(couponInput)}
+                  className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-lg flex-shrink-0 transition-colors shadow-2xs"
+                >
+                  Apply Coupon
+                </button>
+              </div>
+
+              {/* Feedback and Active Coupon Banner */}
+              {couponFeedback && (
+                <div className={`p-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-all ${
+                  couponFeedback.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  <span>{couponFeedback.message}</span>
+                  {coupon && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="text-[11px] text-red-600 hover:text-red-800 underline font-bold ml-2"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {coupon && !couponFeedback && (
+                <div className="p-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center justify-between">
+                  <span>✓ Coupon <strong>{coupon.code}</strong> is applied to your order!</span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-[11px] text-red-600 hover:text-red-800 underline font-bold"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Standard Bank & Showroom Offers */}
+            <div className="space-y-1.5 text-xs text-slate-700 pt-2 border-t border-gray-200/80">
               <div className="flex items-start gap-2">
                 <span className="font-bold text-emerald-700 flex-shrink-0">Bank Offer:</span>
                 <span>5% Cashback on Axis Bank & HDFC Credit Cards on orders above ₹10,000.</span>
@@ -345,7 +453,7 @@ export default function ProductDetails() {
                 <span>Avail No Cost EMI starting at ₹{(Math.round((product.salePrice || product.price) / 12)).toLocaleString('en-IN')}/month on all major banks.</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="font-bold text-emerald-700 flex-shrink-0">Special Partner Offer:</span>
+                <span className="font-bold text-emerald-700 flex-shrink-0">Showroom Exchange:</span>
                 <span>Extra ₹2,000 off on exchange of old smartphone or TV at Audio Den store.</span>
               </div>
             </div>

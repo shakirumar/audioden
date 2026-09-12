@@ -54,8 +54,8 @@ export default function Home() {
   const availableBrandNames = Array.from(
     new Set([
       'all',
-      ...brands.map((b) => b.name),
-      ...products.map((p) => p.brand).filter(Boolean)
+      ...(brands || []).map((b) => b?.name).filter(Boolean),
+      ...(products || []).map((p) => p?.brand).filter(Boolean)
     ])
   );
 
@@ -384,27 +384,28 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {categories.map((cat) => {
-            const count = products.filter(
-              (p) => p.category?.toLowerCase() === cat.name.toLowerCase()
+          {(categories || []).filter((c) => Boolean(c?.name)).map((cat) => {
+            const catName = cat?.name || '';
+            const count = (products || []).filter(
+              (p) => (p.category || '').toLowerCase() === catName.toLowerCase() || (p.brand || '').toLowerCase() === catName.toLowerCase()
             ).length;
 
             return (
               <Link
-                key={cat.id}
-                to={`/shop?category=${encodeURIComponent(cat.name)}`}
+                key={cat.id || catName}
+                to={`/shop?category=${encodeURIComponent(catName)}`}
                 className="group p-3 rounded-xl border border-gray-200 hover:border-amber-400 bg-white hover:shadow-xs transition-all flex flex-col items-center text-center space-y-2"
               >
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gray-50 p-2 flex items-center justify-center border border-gray-100 group-hover:scale-105 transition-transform">
                   <img
-                    src={cat.image}
-                    alt={cat.name}
+                    src={cat.image || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=400&q=80'}
+                    alt={catName}
                     className="max-h-full max-w-full object-contain"
                   />
                 </div>
                 <div>
                   <h4 className="font-bold text-slate-900 text-xs group-hover:text-amber-600 transition-colors line-clamp-1">
-                    {cat.name}
+                    {catName}
                   </h4>
                   <span className="text-[10px] text-gray-400">
                     {count} {count === 1 ? 'Product' : 'Products'}
@@ -539,12 +540,12 @@ export default function Home() {
 
           {/* Category Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            {['All', ...categories.slice(0, 6).map((c) => c.name)].map((catName) => (
+            {['All', ...(categories || []).filter((c) => Boolean(c?.name)).slice(0, 8).map((c) => c.name)].map((catName) => (
               <button
                 key={catName}
                 onClick={() => setActiveCategoryTab(catName)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${
-                  activeCategoryTab.toLowerCase() === catName.toLowerCase()
+                  (activeCategoryTab || '').toLowerCase() === (catName || '').toLowerCase()
                     ? 'bg-slate-900 text-amber-400 shadow-xs'
                     : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
                 }`}

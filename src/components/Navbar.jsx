@@ -442,33 +442,22 @@ export default function Navbar() {
             >
               Shop All
             </Link>
-            <Link
-              to="/shop?category=Smartphones"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="p-2.5 rounded-lg bg-gray-50 text-slate-800 hover:bg-gray-100"
-            >
-              Smartphones
-            </Link>
-            <Link
-              to="/shop?category=Smart TV"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="p-2.5 rounded-lg bg-gray-50 text-slate-800 hover:bg-gray-100"
-            >
-              Smart TVs
-            </Link>
-            <Link
-              to="/shop?category=Refrigerator"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="p-2.5 rounded-lg bg-gray-50 text-slate-800 hover:bg-gray-100"
-            >
-              Refrigerators
-            </Link>
+            {categories.map((cat) => (
+              <Link
+                key={cat.id || cat.name}
+                to={`/shop?category=${encodeURIComponent(cat.name)}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg bg-gray-50 text-slate-800 hover:bg-gray-100 truncate"
+              >
+                {cat.name}
+              </Link>
+            ))}
             <Link
               to="/categories"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="p-2.5 rounded-lg bg-gray-50 text-slate-800 hover:bg-gray-100"
+              className="p-2.5 rounded-lg bg-amber-50 text-amber-900 font-bold hover:bg-amber-100"
             >
-              All Categories
+              All Departments →
             </Link>
           </div>
 

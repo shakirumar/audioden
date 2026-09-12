@@ -5,7 +5,7 @@ import { useCartStore } from '../store/useCartStore';
 
 export default function Cart() {
   const navigate = useNavigate();
-  const { items, updateQuantity, removeItem, clearCart, applyCoupon, getTotals } = useCartStore();
+  const { items, updateQuantity, removeItem, clearCart, applyCoupon, removeCoupon, coupon, getTotals } = useCartStore();
   const [couponInput, setCouponInput] = useState('');
   const [couponFeedback, setCouponFeedback] = useState(null);
 
@@ -215,41 +215,84 @@ export default function Cart() {
 
           {/* Coupon Code Section */}
           <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5 text-amber-500" /> Apply Promo Code
-            </h4>
-            <form onSubmit={handleApplyCoupon} className="flex gap-2">
-              <input
-                type="text"
-                value={couponInput}
-                onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                placeholder="e.g. AUDIODEN10"
-                className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 font-mono"
-              />
-              <button
-                type="submit"
-                className="px-3.5 py-1.5 bg-slate-900 text-amber-400 font-bold text-xs rounded-lg flex-shrink-0"
-              >
-                Apply
-              </button>
-            </form>
-            {couponFeedback && (
-              <p className="text-[11px] text-blue-600 font-medium">{couponFeedback}</p>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-amber-500" /> Apply Promo Code
+              </h4>
+              {coupon && (
+                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                  ✓ Active
+                </span>
+              )}
+            </div>
+
+            {coupon ? (
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-300 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-900 font-mono">
+                    🏷️ {coupon.code}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeCoupon();
+                      setCouponFeedback('Coupon removed');
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800 font-bold underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <p className="text-[11px] text-emerald-700">
+                  {coupon.title || 'Discount applied to your cart!'}
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="e.g. WELCOME10, AUDIODEN5"
+                  className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 font-mono uppercase"
+                />
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 bg-slate-900 text-amber-400 font-bold text-xs rounded-lg flex-shrink-0 hover:bg-slate-800 transition-colors"
+                >
+                  Apply
+                </button>
+              </form>
             )}
-            <div className="flex items-center gap-2 pt-1 text-[10px] text-gray-500">
-              <span>Quick Codes:</span>
-              <button
-                onClick={() => handleQuickCoupon('WELCOME10')}
-                className="px-2 py-0.5 rounded bg-gray-100 hover:bg-amber-100 font-mono font-bold text-slate-800"
-              >
-                WELCOME10
-              </button>
-              <button
-                onClick={() => handleQuickCoupon('AUDIODEN5')}
-                className="px-2 py-0.5 rounded bg-gray-100 hover:bg-amber-100 font-mono font-bold text-slate-800"
-              >
-                AUDIODEN5
-              </button>
+
+            {couponFeedback && (
+              <p className={`text-[11px] font-medium ${
+                coupon ? 'text-emerald-700' : 'text-blue-600'
+              }`}>
+                {couponFeedback}
+              </p>
+            )}
+
+            <div className="flex items-center gap-1.5 pt-1 text-[10px] text-gray-500 flex-wrap">
+              <span className="font-semibold">Quick Codes:</span>
+              {[
+                { code: 'WELCOME10', label: '10% Off' },
+                { code: 'AUDIODEN5', label: '5% Off' },
+                { code: 'OFFER1000', label: '₹1,000 Off' }
+              ].map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => handleQuickCoupon(c.code)}
+                  className={`px-2 py-0.5 rounded font-mono font-bold transition-all ${
+                    coupon?.code === c.code
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : 'bg-gray-100 hover:bg-amber-100 text-slate-800'
+                  }`}
+                >
+                  {c.code}
+                </button>
+              ))}
             </div>
           </div>
 
