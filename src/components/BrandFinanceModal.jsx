@@ -139,7 +139,7 @@ Please confirm document requirements and instant approval at New Katra store.`;
               All Brand Finance Available
             </div>
             <h3 className="text-base sm:text-lg font-black font-heading leading-snug">
-              0% Interest Brand Finance & No Cost EMI
+              0% Interest • Zero Down Payment Brand Finance & EMI
             </h3>
             <p className="text-xs text-gray-300 line-clamp-1 mt-0.5">
               Available for: <strong className="text-white">{product.name}</strong> (₹{price.toLocaleString('en-IN')})
@@ -166,20 +166,20 @@ Please confirm document requirements and instant approval at New Katra store.`;
                 <div className="font-bold text-slate-900 text-xs sm:text-sm">
                   Starting at ₹{calculateEMI(12).toLocaleString('en-IN')} / month
                 </div>
-                <div className="text-[11px] text-amber-900 font-medium">
-                  Zero Down Payment • Instant 5-Minute Showroom Approval
+                <div className="text-[11px] text-amber-900 font-bold">
+                  Zero Down Payment • 0% Interest • Instant 5-Minute Showroom Approval
                 </div>
               </div>
             </div>
             <span className="hidden sm:inline-block px-2.5 py-1 rounded bg-slate-900 text-amber-400 font-black text-[10px] uppercase">
-              100% Paperless
+              ₹0 Down Payment
             </span>
           </div>
 
           {/* Tenure Selector */}
           <div className="space-y-2">
             <label className="font-bold text-slate-900 uppercase tracking-wide text-[11px] block">
-              Select No Cost EMI Tenure:
+              Select 0% Interest & Zero Down Payment Tenure:
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {tenures.map((t) => (
@@ -204,8 +204,8 @@ Please confirm document requirements and instant approval at New Katra store.`;
                   <div className="text-sm font-black mt-0.5">
                     ₹{t.emi.toLocaleString('en-IN')}<span className="text-[10px] font-normal">/mo</span>
                   </div>
-                  <div className={`text-[10px] font-medium mt-1 ${selectedTenure === t.months ? 'text-amber-400' : 'text-emerald-700'}`}>
-                    0% Interest
+                  <div className={`text-[10px] font-bold mt-1 ${selectedTenure === t.months ? 'text-amber-400' : 'text-emerald-700'}`}>
+                    0% Interest • ₹0 Down
                   </div>
                 </button>
               ))}

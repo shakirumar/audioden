@@ -78,14 +78,20 @@ export default function Shop() {
           if (!matches) return false;
         }
 
-        // Category filter
+        // Category filter (Matches category OR brand so that selecting a brand as category or vice-versa never shows 0)
         if (selectedCategory) {
-          if (product.category.toLowerCase() !== selectedCategory.toLowerCase()) return false;
+          const catQuery = selectedCategory.trim().toLowerCase();
+          const matchesCategory = product.category?.toLowerCase() === catQuery;
+          const matchesBrand = product.brand?.toLowerCase() === catQuery;
+          if (!matchesCategory && !matchesBrand) return false;
         }
 
         // Brand filter
         if (selectedBrand) {
-          if (product.brand.toLowerCase() !== selectedBrand.toLowerCase()) return false;
+          const brandQuery = selectedBrand.trim().toLowerCase();
+          const matchesBrand = product.brand?.toLowerCase() === brandQuery;
+          const matchesCategory = product.category?.toLowerCase() === brandQuery;
+          if (!matchesBrand && !matchesCategory) return false;
         }
 
         // Price filter
@@ -119,7 +125,7 @@ export default function Shop() {
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-lg sm:text-xl font-heading font-black text-slate-900">
-            {selectedCategory ? `${selectedCategory}` : searchTerm ? `Search: "${searchTerm}"` : 'All Showroom Electronics'}
+            {selectedCategory ? `${selectedCategory}` : selectedBrand ? `${selectedBrand}` : searchTerm ? `Search: "${searchTerm}"` : 'All Showroom Electronics'}
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Showing <span className="font-bold text-slate-900">{filteredProducts.length}</span> items
@@ -174,7 +180,9 @@ export default function Shop() {
                 <span>{products.length}</span>
               </button>
               {allCategories.map((cat) => {
-                const count = products.filter((p) => p.category?.toLowerCase() === cat.name.toLowerCase()).length;
+                const count = products.filter(
+                  (p) => p.category?.toLowerCase() === cat.name.toLowerCase() || p.brand?.toLowerCase() === cat.name.toLowerCase()
+                ).length;
                 const isSelected = selectedCategory.toLowerCase() === cat.name.toLowerCase();
                 return (
                   <button
@@ -206,17 +214,23 @@ export default function Shop() {
               >
                 <span>All Brands</span>
               </button>
-              {allBrands.map((b) => (
-                <button
-                  key={b.id || b.name}
-                  onClick={() => setSelectedBrand(b.name)}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex justify-between items-center ${
-                    selectedBrand.toLowerCase() === b.name.toLowerCase() ? 'bg-amber-50 text-amber-700 font-bold' : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <span>{b.name}</span>
-                </button>
-              ))}
+              {allBrands.map((b) => {
+                const count = products.filter(
+                  (p) => p.brand?.toLowerCase() === b.name.toLowerCase() || p.category?.toLowerCase() === b.name.toLowerCase()
+                ).length;
+                return (
+                  <button
+                    key={b.id || b.name}
+                    onClick={() => setSelectedBrand(b.name)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex justify-between items-center ${
+                      selectedBrand.toLowerCase() === b.name.toLowerCase() ? 'bg-amber-50 text-amber-700 font-bold' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>{b.name}</span>
+                    <span className="text-[10px] text-gray-400">({count})</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

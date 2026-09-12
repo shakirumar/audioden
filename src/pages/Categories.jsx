@@ -36,7 +36,7 @@ export default function Categories() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {allCategories.map((cat, idx) => {
           const count = products.filter(
-            (p) => p.category?.toLowerCase() === cat.name?.toLowerCase()
+            (p) => p.category?.toLowerCase() === cat.name?.toLowerCase() || p.brand?.toLowerCase() === cat.name?.toLowerCase()
           ).length;
 
           return (

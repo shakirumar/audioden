@@ -1,21 +1,16 @@
 // Master Dataset for AUDIO DEN - Mobile & Home Appliances
 // Authorized Dealer for Apple, Samsung, OnePlus, Vivo, Oppo, Sony, LG, Whirlpool
 
-export const CATALOG_VERSION = '5.2.0';
+export const CATALOG_VERSION = '5.3.0';
 
 export const INITIAL_CATEGORIES = [
-  { id: 'cat-1', name: 'Smartphones', slug: 'smartphones', icon: 'Smartphone', count: 24, image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-2', name: 'Apple', slug: 'apple', icon: 'Smartphone', count: 6, image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-3', name: 'Samsung', slug: 'samsung', icon: 'Smartphone', count: 6, image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-4', name: 'OnePlus', slug: 'oneplus', icon: 'Smartphone', count: 5, image: 'https://images.unsplash.com/photo-1580910051074-3eb694886505?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-5', name: 'Vivo', slug: 'vivo', icon: 'Smartphone', count: 5, image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-6', name: 'Oppo', slug: 'oppo', icon: 'Smartphone', count: 5, image: 'https://images.unsplash.com/photo-1585060544812-6b45742d762f?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-7', name: 'Smart TV', slug: 'smart-tv', icon: 'Tv', count: 14, image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-8', name: 'Refrigerator', slug: 'refrigerator', icon: 'Refrigerator', count: 11, image: 'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-9', name: 'Washing Machine', slug: 'washing-machine', icon: 'WashingMachine', count: 9, image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-10', name: 'Air Conditioner', slug: 'air-conditioner', icon: 'Wind', count: 8, image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-11', name: 'Speakers', slug: 'speakers', icon: 'Speaker', count: 16, image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=600&q=80' },
-  { id: 'cat-12', name: 'Kitchen Appliances', slug: 'kitchen-appliances', icon: 'Coffee', count: 12, image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80' }
+  { id: 'cat-1', name: 'Smartphones', slug: 'smartphones', icon: 'Smartphone', count: 34, image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80' },
+  { id: 'cat-2', name: 'Smart TV', slug: 'smart-tv', icon: 'Tv', count: 14, image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=600&q=80' },
+  { id: 'cat-3', name: 'Refrigerator', slug: 'refrigerator', icon: 'Refrigerator', count: 11, image: 'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?auto=format&fit=crop&w=600&q=80' },
+  { id: 'cat-4', name: 'Air Conditioner', slug: 'air-conditioner', icon: 'Wind', count: 8, image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=600&q=80' },
+  { id: 'cat-5', name: 'Washing Machine', slug: 'washing-machine', icon: 'WashingMachine', count: 9, image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=600&q=80' },
+  { id: 'cat-6', name: 'Speakers', slug: 'speakers', icon: 'Speaker', count: 16, image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?auto=format&fit=crop&w=600&q=80' },
+  { id: 'cat-7', name: 'Kitchen Appliances', slug: 'kitchen-appliances', icon: 'Coffee', count: 12, image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80' }
 ];
 
 export const INITIAL_BRANDS = [

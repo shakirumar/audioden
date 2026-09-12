@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
 import { 
   Plus, Edit2, Trash2, GripVertical, X, Search, Image as ImageIcon, 
-  UploadCloud, Sparkles, Gift
+  UploadCloud, Sparkles, Gift, Loader2, Cloud, CheckCircle2
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useProductStore } from '../../store/useProductStore';
+import { uploadToCloudinary, isCloudinaryConfigured } from '../../services/cloudinary';
 
 const BADGE_THEMES = {
   gold: { label: 'Gold Sunrise', bg: 'from-amber-500 to-orange-500', text: 'text-slate-950' },
@@ -131,6 +132,11 @@ export default function AdminProducts() {
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [isCustomBrand, setIsCustomBrand] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Cloudinary Direct Upload State
+  const [isUploadingCloudinary, setIsUploadingCloudinary] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState('');
+  const [uploadError, setUploadError] = useState('');
 
   // Drag & Drop File Zone state
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -265,20 +271,45 @@ export default function AdminProducts() {
     setIsModalOpen(true);
   };
 
-  // Drag & Drop File Handlers
-  const handleFiles = (files) => {
-    Array.from(files).forEach((file) => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setFormData((prev) => ({
-            ...prev,
-            images: [...prev.images, e.target.result]
-          }));
-        };
-        reader.readAsDataURL(file);
+  // Drag & Drop File Handlers with direct Cloudinary CDN upload
+  const handleFiles = async (files) => {
+    const imageFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+
+    setIsUploadingCloudinary(true);
+    setUploadError('');
+    setUploadProgressText(`Uploading ${imageFiles.length} photo(s) to Cloudinary...`);
+
+    const uploadedUrls = [];
+    for (let i = 0; i < imageFiles.length; i++) {
+      const file = imageFiles[i];
+      setUploadProgressText(`Uploading (${i + 1}/${imageFiles.length}) ${file.name} to Cloudinary...`);
+      try {
+        const res = await uploadToCloudinary(file, 'audioden');
+        if (res?.secure_url) {
+          uploadedUrls.push(res.secure_url);
+        }
+      } catch (err) {
+        console.error('Cloudinary upload error:', err);
+        setUploadError(`Upload warning: ${err.message}. Using preview fallback.`);
+        // Fallback to data URL so user isn't blocked
+        await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            uploadedUrls.push(e.target.result);
+            resolve();
+          };
+          reader.readAsDataURL(file);
+        });
       }
-    });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, ...uploadedUrls]
+    }));
+    setIsUploadingCloudinary(false);
+    setUploadProgressText('');
   };
 
   const handleDrop = (e) => {
@@ -615,12 +646,24 @@ export default function AdminProducts() {
                 <div className="flex justify-between items-center">
                   <label className="font-bold text-slate-900 flex items-center gap-1.5">
                     <ImageIcon className="w-4 h-4 text-amber-500" />
-                    Product Images (Drag & Drop or Upload)
+                    Product Images (Cloudinary CDN Upload)
                   </label>
-                  <span className="text-[11px] text-gray-500">{formData.images.length} images added</span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      <Cloud className="w-3 h-3 text-blue-600" />
+                      <span>Cloud: ohhon9yl</span>
+                    </span>
+                    <span className="text-[11px] text-gray-500">{formData.images.length} added</span>
+                  </div>
                 </div>
 
-                {/* Drag and drop zone */}
+                {uploadError && (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                    {uploadError}
+                  </p>
+                )}
+
+                {/* Drag and drop zone with Cloudinary */}
                 <div
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -628,9 +671,11 @@ export default function AdminProducts() {
                   }}
                   onDragLeave={() => setIsDraggingFile(false)}
                   onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => !isUploadingCloudinary && fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                    isDraggingFile 
+                    isUploadingCloudinary
+                      ? 'border-blue-400 bg-blue-50/50 cursor-wait'
+                      : isDraggingFile 
                       ? 'border-amber-500 bg-amber-50' 
                       : 'border-gray-300 hover:border-slate-400 bg-white'
                   }`}
@@ -640,16 +685,28 @@ export default function AdminProducts() {
                     multiple
                     accept="image/*"
                     ref={fileInputRef}
+                    disabled={isUploadingCloudinary}
                     onChange={(e) => handleFiles(e.target.files)}
                     className="hidden"
                   />
-                  <UploadCloud className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-                  <p className="font-bold text-slate-800">
-                    Drag & Drop image files here, or <span className="text-blue-600 underline">browse files</span>
-                  </p>
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    Supports PNG, JPG, WEBP. Instant real-time preview.
-                  </p>
+
+                  {isUploadingCloudinary ? (
+                    <div className="space-y-2">
+                      <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+                      <p className="font-bold text-slate-900">{uploadProgressText}</p>
+                      <p className="text-[11px] text-blue-600">Uploading photos to Cloudinary CDN...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                      <p className="font-bold text-slate-800">
+                        Drag & Drop product photos here, or <span className="text-blue-600 underline">browse files</span>
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Direct upload to Cloudinary CDN (Supports JPG, PNG, WEBP).
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 {/* Add Image by URL option */}
@@ -658,7 +715,7 @@ export default function AdminProducts() {
                     type="url"
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
-                    placeholder="Or paste external image URL (e.g. Unsplash, CDN)..."
+                    placeholder="Or paste external / Cloudinary image URL..."
                     className="w-full px-3 py-1.5 border border-gray-300 rounded-lg bg-white"
                   />
                   <button
@@ -685,6 +742,12 @@ export default function AdminProducts() {
                         {idx === 0 && (
                           <span className="absolute top-1 left-1 bg-amber-500 text-slate-950 font-black text-[8px] px-1 rounded uppercase">
                             Cover
+                          </span>
+                        )}
+
+                        {img.includes('cloudinary.com') && (
+                          <span className="absolute bottom-1 right-1 bg-blue-600 text-white font-black text-[7px] px-1 rounded">
+                            ☁️ Cloudinary
                           </span>
                         )}
 
