@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import db from '../services/db';
-import { initSupabaseRealtime, isSupabaseConfigured } from '../services/supabase';
+import { initSupabaseRealtime, isSupabaseConfigured, supabase } from '../services/supabase';
 
 export const useProductStore = create((set, _get) => {
   // Listen for storage events across browser tabs
@@ -23,8 +23,12 @@ export const useProductStore = create((set, _get) => {
     });
 
     // Supabase cloud realtime subscription
-    initSupabaseRealtime((table, payload) => {
+    initSupabaseRealtime(async (table, payload) => {
       console.log(`⚡ Supabase Realtime event on ${table}:`, payload);
+      // Fetch latest data from Supabase if available
+      if (typeof db.syncFromSupabaseIfAvailable === 'function') {
+        await db.syncFromSupabaseIfAvailable();
+      }
       // Reload catalog state from DB
       set(db.get());
     });
@@ -81,6 +85,10 @@ export const useProductStore = create((set, _get) => {
       data.categories = [...data.categories, newCat];
       db.save(data);
       set({ categories: data.categories });
+      
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('categories').insert([newCat]).catch(console.warn);
+      }
     },
 
     updateCategory: (id, updatedFields) => {
@@ -88,6 +96,10 @@ export const useProductStore = create((set, _get) => {
       data.categories = data.categories.map((c) => (c.id === id ? { ...c, ...updatedFields } : c));
       db.save(data);
       set({ categories: data.categories });
+      
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('categories').update(updatedFields).eq('id', id).catch(console.warn);
+      }
     },
 
     deleteCategory: (id) => {
@@ -95,6 +107,10 @@ export const useProductStore = create((set, _get) => {
       data.categories = data.categories.filter((c) => c.id !== id);
       db.save(data);
       set({ categories: data.categories });
+      
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('categories').delete().eq('id', id).catch(console.warn);
+      }
     },
 
     // ================= BRANDS CRUD =================
@@ -107,6 +123,10 @@ export const useProductStore = create((set, _get) => {
       data.brands = [...data.brands, newBrand];
       db.save(data);
       set({ brands: data.brands });
+      
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('brands').insert([newBrand]).catch(console.warn);
+      }
     },
 
     updateBrand: (id, updatedFields) => {
@@ -114,6 +134,10 @@ export const useProductStore = create((set, _get) => {
       data.brands = data.brands.map((b) => (b.id === id ? { ...b, ...updatedFields } : b));
       db.save(data);
       set({ brands: data.brands });
+      
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('brands').update(updatedFields).eq('id', id).catch(console.warn);
+      }
     },
 
     deleteBrand: (id) => {
@@ -121,6 +145,10 @@ export const useProductStore = create((set, _get) => {
       data.brands = data.brands.filter((b) => b.id !== id);
       db.save(data);
       set({ brands: data.brands });
+      
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('brands').delete().eq('id', id).catch(console.warn);
+      }
     },
 
     // ================= ORDERS MANAGEMENT =================

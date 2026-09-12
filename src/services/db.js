@@ -89,16 +89,33 @@ class AudioDenDatabase {
   async syncFromSupabaseIfAvailable() {
     if (!isSupabaseConfigured() || !supabase) return;
     try {
-      const { data: remoteProducts, error } = await supabase.from('products').select('*');
-      if (!error && remoteProducts && remoteProducts.length > 0) {
-        const current = this.get();
-        // Merge or replace products with remote
+      const current = this.get();
+      let changed = false;
+
+      const { data: remoteProducts, error: pError } = await supabase.from('products').select('*');
+      if (!pError && remoteProducts && remoteProducts.length > 0) {
         current.products = remoteProducts;
+        changed = true;
+      }
+
+      const { data: remoteCategories, error: cError } = await supabase.from('categories').select('*');
+      if (!cError && remoteCategories && remoteCategories.length > 0) {
+        current.categories = remoteCategories;
+        changed = true;
+      }
+
+      const { data: remoteBrands, error: bError } = await supabase.from('brands').select('*');
+      if (!bError && remoteBrands && remoteBrands.length > 0) {
+        current.brands = remoteBrands;
+        changed = true;
+      }
+
+      if (changed) {
         this.save(current);
-        console.log(`Synced ${remoteProducts.length} products from Supabase Realtime DB`);
+        console.log(`Synced latest data from Supabase Realtime DB`);
       }
     } catch (err) {
-      console.warn('Could not sync from Supabase on startup', err);
+      console.warn('Could not sync from Supabase', err);
     }
   }
 
@@ -176,13 +193,19 @@ class AudioDenDatabase {
         (c) => c.name.toLowerCase() === newProd.category.toLowerCase()
       );
       if (!catExists) {
-        data.categories.push({
+        const newCat = {
           id: 'cat-' + Date.now(),
           name: newProd.category,
           slug: newProd.category.toLowerCase().replace(/\s+/g, '-'),
           image: newProd.images?.[0] || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80',
           count: 1
-        });
+        };
+        data.categories.push(newCat);
+        if (isSupabaseConfigured() && supabase) {
+          supabase.from('categories').insert([newCat]).then(({ error }) => {
+            if (error) console.warn('Supabase cat insert failed:', error.message);
+          });
+        }
       }
     }
 
@@ -192,11 +215,17 @@ class AudioDenDatabase {
         (b) => b.name.toLowerCase() === newProd.brand.toLowerCase()
       );
       if (!brandExists) {
-        data.brands.push({
+        const newBrand = {
           id: 'brand-' + Date.now(),
           name: newProd.brand,
           logo: ''
-        });
+        };
+        data.brands.push(newBrand);
+        if (isSupabaseConfigured() && supabase) {
+          supabase.from('brands').insert([newBrand]).then(({ error }) => {
+            if (error) console.warn('Supabase brand insert failed:', error.message);
+          });
+        }
       }
     }
 
