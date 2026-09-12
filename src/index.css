@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gold-50: #fdfbf2;
+  --color-gold-100: #faf4de;
+  --color-gold-200: #f5e6b7;
+  --color-gold-300: #eed387;
+  --color-gold-400: #e4be57;
+  --color-gold-500: #d4af37; /* Luxury Metallic Champagne Gold */
+  --color-gold-600: #b8932b;
+  --color-gold-700: #937123;
+  --color-gold-800: #775a22;
+  --color-gold-900: #624a20;
+
+  --color-brand-primary: #0f172a;
+  --color-brand-dark: #0a0a0c;
+  --color-brand-blue: #2874f0;
+  --color-brand-orange: #fb641b;
+  --color-brand-green: #388e3c;
+  --color-brand-amber: #f59e0b;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  :root {
+    --bg-page: #f1f2f4; /* Flipkart / Amazon style clean light gray canvas */
+    --text-page: #111827;
+    --card-bg: #ffffff;
+    --card-border: #e5e7eb;
+    --gold: #d4af37;
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-page);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.015em;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Flipkart / Amazon Modern Card Style */
+.fk-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease-in-out;
+}
+
+.fk-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* Primary E-commerce Buttons */
+.btn-gold {
+  background: linear-gradient(135deg, #d4af37 0%, #b8932b 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25);
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, #e4be57 0%, #c49d32 100%);
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-brand-dark {
+  background-color: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-brand-dark:hover {
+  background-color: #1e293b;
+  transform: translateY(-1px);
+}
+
+.btn-buy-now {
+  background: linear-gradient(135deg, #fb641b 0%, #e65100 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(251, 100, 27, 0.25);
+}
+
+.btn-buy-now:hover {
+  background: linear-gradient(135deg, #ff7226 0%, #f55707 100%);
+  transform: translateY(-1px);
+}
+
+.btn-add-cart {
+  background: linear-gradient(135deg, #ff9f00 0%, #f39700 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 159, 0, 0.25);
+}
+
+.btn-add-cart:hover {
+  background: linear-gradient(135deg, #ffa81a 0%, #ffa00a 100%);
+  transform: translateY(-1px);
+}
+
+/* Rating Badge (Flipkart Green Pill) */
+.rating-pill-green {
+  background-color: #388e3c;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* Subtle modern scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f2f4;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
