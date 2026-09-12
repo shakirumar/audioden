@@ -437,7 +437,7 @@ export default function Home() {
           {/* Dynamic Brand Filter Tabs & Slider Controls */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-              {availableBrandNames.slice(0, 7).map((brandName) => (
+              {availableBrandNames.map((brandName) => (
                 <button
                   key={brandName}
                   onClick={() => setActiveBrandFilter(brandName)}
@@ -540,7 +540,7 @@ export default function Home() {
 
           {/* Category Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            {['All', ...(categories || []).filter((c) => Boolean(c?.name)).slice(0, 8).map((c) => c.name)].map((catName) => (
+            {['All', ...(categories || []).filter((c) => Boolean(c?.name)).map((c) => c.name)].map((catName) => (
               <button
                 key={catName}
                 onClick={() => setActiveCategoryTab(catName)}

@@ -392,7 +392,7 @@ export default function Navbar() {
             >
               <span>All Products</span>
             </Link>
-            {categories.slice(0, 8).map((c) => (
+            {categories.map((c) => (
               <Link
                 key={c.id || c.name}
                 to={`/shop?category=${encodeURIComponent(c.name)}`}

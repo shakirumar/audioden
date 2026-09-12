@@ -107,7 +107,7 @@ export default function AdminCustomers() {
     });
 
     // Compute actual order counts & total spending directly from live orders
-    return Array.from(customerMap.values()).map((cust) => {
+    let finalCustomers = Array.from(customerMap.values()).map((cust) => {
       const custOrders = (orders || []).filter(
         (o) =>
           (cust.email && o.customerEmail?.toLowerCase() === cust.email.toLowerCase()) ||
@@ -124,6 +124,23 @@ export default function AdminCustomers() {
         actualTotalSpent: liveSpend > 0 ? liveSpend : cust.totalSpent || 0
       };
     });
+
+    try {
+      const deletedRecords = JSON.parse(localStorage.getItem('audio_den_deleted_customers') || '[]');
+      if (deletedRecords.length > 0) {
+        finalCustomers = finalCustomers.filter(c => 
+          !deletedRecords.some(d => 
+            d.id === c.id || 
+            (d.email && c.email && d.email.toLowerCase() === c.email.toLowerCase()) || 
+            (d.phone && c.phone && d.phone === c.phone)
+          )
+        );
+      }
+    } catch (e) {
+      console.error('Error filtering deleted customers:', e);
+    }
+
+    return finalCustomers;
   }, [customers, orders]);
 
   // Search & Filter
@@ -424,6 +441,25 @@ export default function AdminCustomers() {
                     <button
                       onClick={() => {
                         if (confirm(`Remove customer record for ${cust.name}?`)) {
+                          try {
+                            // 1. Remove from registered users
+                            const registered = JSON.parse(localStorage.getItem('audio_den_registered_users') || '[]');
+                            const updated = registered.filter(u => {
+                              if (u.id === cust.id) return false;
+                              if (u.email && cust.email && u.email.toLowerCase() === cust.email.toLowerCase()) return false;
+                              if (u.phone && cust.phone && u.phone === cust.phone) return false;
+                              return true;
+                            });
+                            localStorage.setItem('audio_den_registered_users', JSON.stringify(updated));
+
+                            // 2. Add to deleted customers list to ensure they don't reappear via orders
+                            const deletedList = JSON.parse(localStorage.getItem('audio_den_deleted_customers') || '[]');
+                            deletedList.push({ id: cust.id, email: cust.email, phone: cust.phone });
+                            localStorage.setItem('audio_den_deleted_customers', JSON.stringify(deletedList));
+                          } catch (e) {
+                            console.error('Failed to remove customer record completely', e);
+                          }
+                          // 3. Delete from store (which triggers a re-render and re-evaluates useMemo)
                           deleteCustomer(cust.id);
                         }
                       }}
