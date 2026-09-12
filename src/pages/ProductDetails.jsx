@@ -313,7 +313,7 @@ export default function ProductDetails() {
                 </div>
               </div>
               <span className="text-[10px] font-black bg-slate-900 text-amber-400 px-2 py-0.5 rounded">
-                ₹0 Down Payment
+                0% Interest EMI
               </span>
             </div>
 

@@ -285,7 +285,7 @@ export default function Home() {
               All Brand Finance Available
             </div>
             <h2 className="text-xl sm:text-3xl font-heading font-black">
-              Take Any Flagship Home with 0% Interest & ₹0 Down Payment
+              Take Any Flagship Home with 0% Interest & Easy EMI
             </h2>
             <p className="text-gray-300 text-xs sm:text-sm leading-relaxed max-w-2xl">
               Audio Den is an authorized showroom partner for <strong>Bajaj Finserv, HDFC Bank EasyEMI, IDFC FIRST Bank, Samsung Finance+, and Apple Financial Services</strong>. Get instant 5-minute approval with just your Aadhaar and PAN Card!
@@ -570,7 +570,7 @@ export default function Home() {
               <Sparkles className="w-3.5 h-3.5" /> All Brand Finance Available
             </div>
             <h2 className="text-2xl sm:text-3xl font-heading font-black tracking-tight">
-              0% Interest & Zero Down Payment EMI Schemes
+              0% Interest Brand Finance & No-Cost EMI Schemes
             </h2>
             <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
               Buy your favourite smartphone, 4K LED TV, refrigerator, or inverter AC today with instant paperless approval in just 3 minutes at our Audio Den showroom or online via WhatsApp.
@@ -595,8 +595,8 @@ export default function Home() {
         {/* 13 Finance Partners Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {[
-            { name: 'Bajaj Finance', scheme: 'Zero Down Payment • 0% EMI', tag: 'Instant Approval', color: 'from-blue-900/60 to-blue-950/80 border-blue-600/50 text-blue-200' },
-            { name: 'HDB Finance', scheme: 'Consumer Durable Loan', tag: 'Zero Downpayment', color: 'from-cyan-900/60 to-cyan-950/80 border-cyan-600/50 text-cyan-200' },
+            { name: 'Bajaj Finance', scheme: '0% Interest No-Cost EMI', tag: 'Instant Approval', color: 'from-blue-900/60 to-blue-950/80 border-blue-600/50 text-blue-200' },
+            { name: 'HDB Finance', scheme: 'Consumer Durable Loan', tag: 'Quick Approval', color: 'from-cyan-900/60 to-cyan-950/80 border-cyan-600/50 text-cyan-200' },
             { name: 'Poonawalla Finance', scheme: 'Poonawalla Fincorp Easy EMI', tag: 'Lowest Fee', color: 'from-orange-900/60 to-orange-950/80 border-orange-600/50 text-orange-200' },
             { name: 'TVS Finance', scheme: 'TVS Credit Instant Scheme', tag: 'Showroom Special', color: 'from-red-900/60 to-red-950/80 border-red-600/50 text-red-200' },
             { name: 'DMI Finance', scheme: 'Digital Smartphone Financing', tag: 'Pre-Approved', color: 'from-indigo-900/60 to-indigo-950/80 border-indigo-600/50 text-indigo-200' },
@@ -657,7 +657,7 @@ export default function Home() {
               3
             </div>
             <div>
-              <h4 className="font-bold text-white text-xs">₹0 Down & Walk Out</h4>
+              <h4 className="font-bold text-white text-xs">Easy EMI & Walk Out</h4>
               <p className="text-[11px] text-gray-400">Pay in 3, 6, 9 or 12 monthly installments</p>
             </div>
           </div>
@@ -720,7 +720,7 @@ export default function Home() {
               Experience Flagship Electronics in Person
             </h2>
             <p className="text-gray-300 text-xs sm:text-sm leading-relaxed max-w-xl">
-              Visit our state-of-the-art electronics showroom in Prayagraj for live demos of iPhone 16, Galaxy S25 Ultra, OnePlus 13, Vivo X200 Pro, and Oppo Find X8 with instant zero-downpayment EMI.
+              Visit our state-of-the-art electronics showroom in Prayagraj for live demos of iPhone 16, Galaxy S25 Ultra, OnePlus 13, Vivo X200 Pro, and Oppo Find X8 with instant 0% interest EMI.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-300 pt-2">
               <div className="flex items-center gap-2">
@@ -737,7 +737,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <span>GSTIN: 09AGHPG2164L1Z8 • PAN: AGHPG2164L</span>
+                <span>GSTIN: 09AGHPG2164L1Z8</span>
               </div>
             </div>
           </div>

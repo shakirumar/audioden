@@ -15,7 +15,7 @@ export default function BrandFinanceModal({ product, isOpen, onClose }) {
     { months: 3, label: '3 Months (No Cost)', emi: calculateEMI(3), processingFee: 0 },
     { months: 6, label: '6 Months (No Cost)', emi: calculateEMI(6), processingFee: 0, popular: true },
     { months: 9, label: '9 Months (Special)', emi: calculateEMI(9), processingFee: 0 },
-    { months: 12, label: '12 Months (Zero Downpayment)', emi: calculateEMI(12), processingFee: 0 }
+    { months: 12, label: '12 Months (Special Scheme)', emi: calculateEMI(12), processingFee: 0 }
   ];
 
   const currentEmi = calculateEMI(selectedTenure);
@@ -23,7 +23,7 @@ export default function BrandFinanceModal({ product, isOpen, onClose }) {
   const financePartners = [
     {
       name: 'Bajaj Finance',
-      scheme: 'Zero Down Payment • 0% Interest EMI',
+      scheme: '0% Interest No-Cost EMI',
       tag: 'Instant Approval',
       color: 'border-blue-500 bg-blue-50/50 text-blue-900',
       docs: 'Aadhaar Card + PAN Card'
@@ -31,7 +31,7 @@ export default function BrandFinanceModal({ product, isOpen, onClose }) {
     {
       name: 'HDB Finance',
       scheme: 'HDB Financial Services Consumer Loan',
-      tag: 'Zero Downpayment',
+      tag: 'Instant KYC',
       color: 'border-cyan-500 bg-cyan-50/50 text-cyan-900',
       docs: 'Instant KYC Verification'
     },
@@ -139,7 +139,7 @@ Please confirm document requirements and instant approval at New Katra store.`;
               All Brand Finance Available
             </div>
             <h3 className="text-base sm:text-lg font-black font-heading leading-snug">
-              0% Interest • Zero Down Payment Brand Finance & EMI
+              0% Interest Brand Finance & No Cost EMI
             </h3>
             <p className="text-xs text-gray-300 line-clamp-1 mt-0.5">
               Available for: <strong className="text-white">{product.name}</strong> (₹{price.toLocaleString('en-IN')})
@@ -167,19 +167,19 @@ Please confirm document requirements and instant approval at New Katra store.`;
                   Starting at ₹{calculateEMI(12).toLocaleString('en-IN')} / month
                 </div>
                 <div className="text-[11px] text-amber-900 font-bold">
-                  Zero Down Payment • 0% Interest • Instant 5-Minute Showroom Approval
+                  0% Interest No-Cost EMI • Instant 5-Minute Showroom Approval
                 </div>
               </div>
             </div>
             <span className="hidden sm:inline-block px-2.5 py-1 rounded bg-slate-900 text-amber-400 font-black text-[10px] uppercase">
-              ₹0 Down Payment
+              0% Interest EMI
             </span>
           </div>
 
           {/* Tenure Selector */}
           <div className="space-y-2">
             <label className="font-bold text-slate-900 uppercase tracking-wide text-[11px] block">
-              Select 0% Interest & Zero Down Payment Tenure:
+              Select 0% Interest EMI Tenure:
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {tenures.map((t) => (
@@ -205,7 +205,7 @@ Please confirm document requirements and instant approval at New Katra store.`;
                     ₹{t.emi.toLocaleString('en-IN')}<span className="text-[10px] font-normal">/mo</span>
                   </div>
                   <div className={`text-[10px] font-bold mt-1 ${selectedTenure === t.months ? 'text-amber-400' : 'text-emerald-700'}`}>
-                    0% Interest • ₹0 Down
+                    0% Interest EMI
                   </div>
                 </button>
               ))}
@@ -257,7 +257,7 @@ Please confirm document requirements and instant approval at New Katra store.`;
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="w-4 h-4 rounded-full bg-slate-900 text-white font-bold text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                <span>Take your new device home immediately with ₹0 downpayment</span>
+                <span>Take your new device home immediately with easy monthly installments</span>
               </div>
             </div>
           </div>

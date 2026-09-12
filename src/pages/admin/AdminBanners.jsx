@@ -156,7 +156,7 @@ export default function AdminBanners() {
                   type="text"
                   value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
-                  placeholder="Up to 40% Off + Zero Downpayment EMI"
+                  placeholder="Up to 40% Off + 0% Interest EMI"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
               </div>

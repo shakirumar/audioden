@@ -1141,7 +1141,7 @@ export default function UserAccount() {
                     82/55/2 A Road, Tripathi Chauraha, New Katra, Prayagraj, UP - 211002
                   </p>
                   <p className="text-gray-500 text-[11px]">
-                    GSTIN: <strong className="text-slate-800">09AGHPG2164L1Z8</strong> • PAN: <strong className="text-slate-800">AGHPG2164L</strong>
+                    GSTIN: <strong className="text-slate-800">09AGHPG2164L1Z8</strong>
                   </p>
                   <p className="text-gray-500 text-[11px]">
                     Helpline / WhatsApp: +91 9935102727 • vaibhavgupta1974@gmail.com

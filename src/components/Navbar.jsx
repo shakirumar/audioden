@@ -95,8 +95,6 @@ export default function Navbar() {
             </div>
             <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-400/10 border border-amber-400/20 text-amber-400 font-bold text-[10px]">
               <span>GSTIN: 09AGHPG2164L1Z8</span>
-              <span className="text-gray-500">•</span>
-              <span>PAN: AGHPG2164L</span>
             </div>
           </div>
           <div className="flex items-center gap-3 sm:gap-5 text-xs flex-shrink-0">

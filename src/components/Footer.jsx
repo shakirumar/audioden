@@ -174,7 +174,6 @@ export default function Footer() {
             <p>© {new Date().getFullYear()} AUDIO DEN. All rights reserved. 82/55/2 A Road, Tripathi Chauraha, New Katra, Prayagraj.</p>
             <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 font-mono">
               <span className="bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded">GSTIN: 09AGHPG2164L1Z8</span>
-              <span className="bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded">PAN: AGHPG2164L</span>
               <span className="text-emerald-400 font-semibold">• 100% Verified Indian Business</span>
             </div>
             <p className="text-[10px] tracking-wider text-gray-400 font-bold uppercase">
@@ -183,7 +182,7 @@ export default function Footer() {
           </div>
           <div className="flex flex-col sm:items-end gap-1.5 max-w-xl">
             <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
-              All Brand Finance Available (0% EMI & Zero Down Payment):
+              All Brand Finance Available (0% Interest No-Cost EMI):
             </div>
             <div className="flex flex-wrap sm:justify-end items-center gap-1.5 text-[10px] font-semibold text-gray-300">
               <span className="px-2 py-0.5 rounded bg-blue-950 text-blue-200 border border-blue-800/60">Bajaj Finance</span>

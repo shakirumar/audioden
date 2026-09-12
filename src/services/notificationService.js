@@ -10,7 +10,6 @@ export const STORE_CONFIG = {
   whatsappNumber: '919935102727',
   address: '82/55/2 A Road, Tripathi Chauraha, New Katra, Prayagraj, UP 211002',
   gstNumber: '09AGHPG2164L1Z8',
-  panNumber: 'AGHPG2164L',
   supportHours: 'Daily 10:30 AM – 9:30 PM'
 };
 
@@ -270,7 +269,7 @@ export function printGstInvoice(order) {
             <div class="logo-sub">Authorized Electronics Showroom</div>
             <div style="font-size: 11px; color: #64748b; margin-top: 5px;">
               ${STORE_CONFIG.address}<br>
-              GSTIN: <strong>${STORE_CONFIG.gstNumber}</strong> | PAN: <strong>${STORE_CONFIG.panNumber}</strong> | Helpline: ${STORE_CONFIG.ownerPhone}
+              GSTIN: <strong>${STORE_CONFIG.gstNumber}</strong> | Helpline: ${STORE_CONFIG.ownerPhone}
             </div>
           </div>
           <div style="text-align: right;">

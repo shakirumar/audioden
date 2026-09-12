@@ -173,7 +173,7 @@ export default function ProductCard({ product }) {
             )}
           </div>
 
-          {/* Brand Finance Available Pill (Zero Down Payment • 0% Interest) */}
+          {/* Brand Finance Available Pill */}
           <button
             type="button"
             onClick={(e) => {
@@ -181,12 +181,12 @@ export default function ProductCard({ product }) {
               e.stopPropagation();
               setIsFinanceOpen(true);
             }}
-            className="w-full text-left p-1.5 rounded-lg bg-gradient-to-r from-emerald-50 via-amber-50 to-blue-50 hover:from-emerald-100 hover:to-blue-100 border border-emerald-300 text-[10px] text-slate-900 font-bold flex items-center justify-between transition-all cursor-pointer group/fin shadow-2xs"
-            title="Click to view Zero Down Payment & 0% EMI Schemes"
+            className="w-full text-left p-1.5 rounded-lg bg-gradient-to-r from-blue-50/90 via-amber-50/70 to-blue-50/90 hover:from-blue-100 hover:to-amber-100 border border-blue-200 text-[10px] text-slate-900 font-bold flex items-center justify-between transition-all cursor-pointer group/fin shadow-2xs"
+            title="Click to view 0% Brand Finance & EMI Schemes"
           >
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-              <span className="truncate text-emerald-950 font-black">Zero Down • 0% EMI</span>
+              <CreditCard className="w-3 h-3 text-blue-600 flex-shrink-0" />
+              <span className="truncate text-slate-900 font-black">Brand Finance 0% EMI</span>
             </div>
             <span className="text-blue-800 font-black flex-shrink-0 group-hover/fin:underline text-[9.5px] bg-white/90 px-1.5 py-0.5 rounded border border-blue-200/80">
               ₹{Math.round((product.salePrice || product.price) / 12).toLocaleString('en-IN')}/mo →
