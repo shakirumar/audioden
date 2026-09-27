@@ -57,21 +57,25 @@ export default function AdminOffers() {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const payload = {
-      title: title.trim(),
-      description: description.trim(),
-      discountPercent: Number(discountPercent),
-      applicableTo,
-      applicableValue,
-      couponCode: couponCode.trim().toUpperCase(),
-      startDate,
-      endDate
-    };
+    try {
+      const payload = {
+        title: title.trim(),
+        description: description.trim(),
+        discountPercent: Number(discountPercent) || 10,
+        applicableTo,
+        applicableValue: applicableTo === 'all' ? 'All Products' : (applicableValue || (applicableTo === 'brand' ? (brands[0]?.name || 'All') : (categories[0]?.name || 'All'))),
+        couponCode: couponCode.trim().toUpperCase(),
+        startDate: startDate || new Date().toISOString().split('T')[0],
+        endDate: endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      };
 
-    if (editingId) {
-      updateOffer(editingId, payload);
-    } else {
-      addOffer(payload);
+      if (editingId) {
+        updateOffer(editingId, payload);
+      } else {
+        addOffer(payload);
+      }
+    } catch (err) {
+      console.error('Offer save error:', err);
     }
 
     setIsModalOpen(false);
@@ -306,8 +310,15 @@ export default function AdminOffers() {
                   <select
                     value={applicableTo}
                     onChange={(e) => {
-                      setApplicableTo(e.target.value);
-                      setApplicableValue('');
+                      const newTarget = e.target.value;
+                      setApplicableTo(newTarget);
+                      if (newTarget === 'brand') {
+                        setApplicableValue(brands[0]?.name || '');
+                      } else if (newTarget === 'category') {
+                        setApplicableValue(categories[0]?.name || '');
+                      } else {
+                        setApplicableValue('All Products');
+                      }
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-amber-500"
                   >

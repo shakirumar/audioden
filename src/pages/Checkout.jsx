@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { 
   ShieldCheck, CheckCircle2, CreditCard, Banknote, Truck, ArrowLeft, 
-  MessageCircle, Mail, Printer, ExternalLink, Send, Check, Lock, UserCheck, AlertCircle, ArrowRight
+  MessageCircle, Mail, Printer, ExternalLink, Send, Check, Lock, UserCheck, AlertCircle, ArrowRight, Tag
 } from 'lucide-react';
 import { useCartStore } from '../store/useCartStore';
 import { useProductStore } from '../store/useProductStore';
@@ -21,7 +21,7 @@ import {
 
 export default function Checkout() {
   const { items, getTotals, clearCart, coupon, applyCoupon, removeCoupon } = useCartStore();
-  const { createOrder } = useProductStore();
+  const { createOrder, offers = [] } = useProductStore();
   const { user, isAuthenticated, login, register: authRegister, loginAsDemoCustomer, addAddress } = useAuthStore();
   const { subtotal, discount, grandTotal } = getTotals();
 
@@ -42,10 +42,6 @@ export default function Checkout() {
     if (res.success) setCheckoutCouponInput('');
   };
 
-  const handleQuickCheckoutCoupon = (code) => {
-    const res = applyCoupon(code);
-    setCheckoutCouponFeedback(res);
-  };
 
   // Inline Auth State for unauthenticated users
   const [authTab, setAuthTab] = useState('login'); // 'login' or 'register'
@@ -955,13 +951,13 @@ export default function Checkout() {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={checkoutCouponInput}
                       onChange={(e) => setCheckoutCouponInput(e.target.value.toUpperCase())}
-                      placeholder="e.g. WELCOME10"
+                      placeholder="Enter coupon code (e.g. DIWALI20)"
                       className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 font-mono uppercase bg-white"
                     />
                     <button
@@ -972,18 +968,33 @@ export default function Checkout() {
                       Apply
                     </button>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                    <span>Quick:</span>
-                    {['WELCOME10', 'AUDIODEN5', 'OFFER1000'].map((qc) => (
-                      <button
-                        key={qc}
-                        type="button"
-                        onClick={() => handleQuickCheckoutCoupon(qc)}
-                        className="px-1.5 py-0.5 rounded bg-gray-100 hover:bg-amber-100 font-mono font-bold text-slate-800"
-                      >
-                        {qc}
-                      </button>
-                    ))}
+
+                  {/* Available Promo Chips */}
+                  <div className="pt-1.5 border-t border-gray-100 space-y-1">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
+                      Available Coupons:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {((offers || []).filter(o => o.active !== false && o.enabled !== false && o.couponCode).length > 0
+                        ? (offers || []).filter(o => o.active !== false && o.enabled !== false && o.couponCode)
+                        : [
+                            { couponCode: 'DIWALI20', discountPercent: 20 },
+                            { couponCode: 'WELCOME10', discountPercent: 10 }
+                          ]
+                      ).map((c) => (
+                        <button
+                          key={c.id || c.couponCode}
+                          type="button"
+                          onClick={() => {
+                            const res = applyCoupon(c.couponCode);
+                            setCheckoutCouponFeedback(res);
+                          }}
+                          className="px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-[10px] font-mono font-bold transition-colors"
+                        >
+                          {c.couponCode} ({c.discountPercent ? `${c.discountPercent}% OFF` : `₹${c.discountAmount || c.discountValue} OFF`})
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

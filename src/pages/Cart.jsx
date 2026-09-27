@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, ShoppingBag, ArrowRight, ShieldCheck, Tag, ArrowLeft, Plus, Minus, MessageCircle } from 'lucide-react';
 import { useCartStore } from '../store/useCartStore';
+import { useProductStore } from '../store/useProductStore';
 
 export default function Cart() {
   const navigate = useNavigate();
   const { items, updateQuantity, removeItem, clearCart, applyCoupon, removeCoupon, coupon, getTotals } = useCartStore();
+  const { offers = [] } = useProductStore();
   const [couponInput, setCouponInput] = useState('');
   const [couponFeedback, setCouponFeedback] = useState(null);
 
@@ -21,10 +23,6 @@ export default function Cart() {
     }
   };
 
-  const handleQuickCoupon = (code) => {
-    const res = applyCoupon(code);
-    setCouponFeedback(res.message);
-  };
 
   if (items.length === 0) {
     return (
@@ -248,21 +246,52 @@ export default function Cart() {
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleApplyCoupon} className="flex gap-2">
-                <input
-                  type="text"
-                  value={couponInput}
-                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                  placeholder="e.g. WELCOME10, AUDIODEN5"
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 font-mono uppercase"
-                />
-                <button
-                  type="submit"
-                  className="px-3.5 py-1.5 bg-slate-900 text-amber-400 font-bold text-xs rounded-lg flex-shrink-0 hover:bg-slate-800 transition-colors"
-                >
-                  Apply
-                </button>
-              </form>
+              <div className="space-y-2">
+                <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Enter coupon code (e.g. DIWALI20)"
+                    className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 font-mono uppercase"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3.5 py-1.5 bg-slate-900 text-amber-400 font-bold text-xs rounded-lg flex-shrink-0 hover:bg-slate-800 transition-colors"
+                  >
+                    Apply
+                  </button>
+                </form>
+
+                {/* Available Promo Chips */}
+                <div className="pt-2 border-t border-gray-100 space-y-1.5">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
+                    Available Coupons:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {((offers || []).filter(o => o.active !== false && o.enabled !== false && o.couponCode).length > 0 
+                      ? (offers || []).filter(o => o.active !== false && o.enabled !== false && o.couponCode) 
+                      : [
+                          { couponCode: 'DIWALI20', discountPercent: 20 },
+                          { couponCode: 'WELCOME10', discountPercent: 10 },
+                          { couponCode: 'AUDIODEN5', discountPercent: 5 }
+                        ]
+                    ).map((c) => (
+                      <button
+                        key={c.id || c.couponCode}
+                        type="button"
+                        onClick={() => {
+                          const res = applyCoupon(c.couponCode);
+                          setCouponFeedback(res.message);
+                        }}
+                        className="px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-[11px] font-mono font-bold transition-colors shadow-2xs"
+                      >
+                        {c.couponCode} ({c.discountPercent ? `${c.discountPercent}% OFF` : `₹${c.discountAmount || c.discountValue} OFF`})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
 
             {couponFeedback && (
@@ -272,28 +301,6 @@ export default function Cart() {
                 {couponFeedback}
               </p>
             )}
-
-            <div className="flex items-center gap-1.5 pt-1 text-[10px] text-gray-500 flex-wrap">
-              <span className="font-semibold">Quick Codes:</span>
-              {[
-                { code: 'WELCOME10', label: '10% Off' },
-                { code: 'AUDIODEN5', label: '5% Off' },
-                { code: 'OFFER1000', label: '₹1,000 Off' }
-              ].map((c) => (
-                <button
-                  key={c.code}
-                  type="button"
-                  onClick={() => handleQuickCoupon(c.code)}
-                  className={`px-2 py-0.5 rounded font-mono font-bold transition-all ${
-                    coupon?.code === c.code
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                      : 'bg-gray-100 hover:bg-amber-100 text-slate-800'
-                  }`}
-                >
-                  {c.code}
-                </button>
-              ))}
-            </div>
           </div>
 
         </div>

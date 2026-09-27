@@ -38,10 +38,17 @@ export default function AdminBrands() {
     e.preventDefault();
     if (!name.trim()) return;
 
-    if (editingId) {
-      updateBrand(editingId, { name, logo });
-    } else {
-      addBrand({ name, logo });
+    try {
+      const cleanName = name.trim();
+      const cleanLogo = logo.trim();
+
+      if (editingId) {
+        updateBrand(editingId, { name: cleanName, logo: cleanLogo });
+      } else {
+        addBrand({ name: cleanName, logo: cleanLogo });
+      }
+    } catch (err) {
+      console.error('Brand save error:', err);
     }
 
     setIsModalOpen(false);
@@ -78,17 +85,25 @@ export default function AdminBrands() {
               className="p-4 rounded-xl bg-white border border-gray-200 flex flex-col justify-between hover:border-amber-400 hover:shadow-xs transition-all space-y-4"
             >
               <div className="flex items-center gap-3">
-                {brand.logo ? (
-                  <img
-                    src={brand.logo}
-                    alt={brand.name}
-                    className="w-12 h-12 object-contain rounded-lg p-1 bg-gray-50 border border-gray-200"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-lg bg-slate-900 text-amber-400 font-bold text-sm flex items-center justify-center">
-                    {brand.name.substring(0, 2).toUpperCase()}
+                <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center p-1.5 relative overflow-hidden flex-shrink-0">
+                  {brand.logo ? (
+                    <img
+                      src={brand.logo}
+                      alt={brand.name}
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement.querySelector('.brand-avatar-fallback');
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className={`brand-avatar-fallback w-full h-full rounded-lg bg-slate-900 text-amber-400 font-black text-xs items-center justify-center ${brand.logo ? 'hidden' : 'flex'}`}
+                  >
+                    {brand.name ? brand.name.substring(0, 2).toUpperCase() : 'BR'}
                   </div>
-                )}
+                </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">{brand.name}</h3>
                   <span className="text-[11px] text-gray-500">{productCount} active devices</span>

@@ -18,6 +18,7 @@ import AdminCustomers from './pages/admin/AdminCustomers';
 import AdminBanners from './pages/admin/AdminBanners';
 import AdminReviews from './pages/admin/AdminReviews';
 import AdminOffers from './pages/admin/AdminOffers';
+import AdminAddProduct from './pages/admin/AdminAddProduct';
 
 function App() {
   return (
@@ -37,6 +38,8 @@ function App() {
         {/* Master Admin Portal Routes */}
         <Route path="/admin" element={<AdminDashboard />}>
           <Route path="products" element={<AdminProducts />} />
+          <Route path="add-product" element={<AdminAddProduct />} />
+          <Route path="edit-product/:id" element={<AdminAddProduct />} />
           <Route path="categories" element={<AdminCategories />} />
           <Route path="brands" element={<AdminBrands />} />
           <Route path="orders" element={<AdminOrders />} />

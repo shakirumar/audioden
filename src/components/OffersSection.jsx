@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
 import ProductCard from './ProductCard';
+import { getModelWiseProducts } from '../utils/productUtils';
 
 export default function OffersSection() {
   const { products, offers = [] } = useProductStore();
@@ -13,8 +14,10 @@ export default function OffersSection() {
   // Active promotional coupons
   const activeOffers = offers.filter((o) => o.enabled !== false);
 
-  // Products with active special offers
-  const offerProducts = products.filter((p) => p.hasOffer || p.isFlashSale || p.couponText);
+  // Products with active special offers (model-wise)
+  const offerProducts = getModelWiseProducts(
+    products.filter((p) => p.hasOffer || p.isFlashSale || p.couponText)
+  );
 
   const handleCopyCode = (code) => {
     navigator.clipboard.writeText(code);

@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Package, Layers, Tag, ShoppingBag, Users, 
   Image as ImageIcon, MessageSquare, LogOut, 
-  TrendingUp, IndianRupee, ArrowLeft, Percent 
+  TrendingUp, IndianRupee, ArrowLeft, Percent, PlusCircle 
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useProductStore } from '../../store/useProductStore';
@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin, logout } = useAuthStore();
-  const { products, categories, brands, orders, customers, reviews, offers = [], resetToDefault } = useProductStore();
+  const { products, categories, brands, banners = [], orders, customers, reviews, offers = [], resetToDefault } = useProductStore();
 
   const isChildRoute = location.pathname !== '/admin' && location.pathname !== '/admin/';
 
@@ -44,13 +44,14 @@ export default function AdminDashboard() {
   const navItems = [
     { label: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { label: 'Products', path: '/admin/products', icon: Package, count: totalProducts },
+    { label: 'Add Product', path: '/admin/add-product', icon: PlusCircle, isNew: true },
     { label: 'Categories', path: '/admin/categories', icon: Layers, count: categories.length },
     { label: 'Brands', path: '/admin/brands', icon: Tag, count: brands.length },
     { label: 'Orders', path: '/admin/orders', icon: ShoppingBag, count: totalOrders },
     { label: 'Customers', path: '/admin/customers', icon: Users, count: totalCustomers },
-    { label: 'Banners', path: '/admin/banners', icon: ImageIcon },
-    { label: 'Offers', path: '/admin/offers', icon: Percent, count: offers.filter((o) => o.enabled).length },
-    { label: 'Reviews', path: '/admin/reviews', icon: MessageSquare, count: reviews.filter((r) => !r.approved).length }
+    { label: 'Banners', path: '/admin/banners', icon: ImageIcon, count: banners.length },
+    { label: 'Offers', path: '/admin/offers', icon: Percent, count: offers.length },
+    { label: 'Reviews', path: '/admin/reviews', icon: MessageSquare, count: reviews.length }
   ];
 
   return (

@@ -3,6 +3,7 @@ import { X, CreditCard, CheckCircle2, MessageCircle, ShieldCheck, Sparkles, Buil
 
 export default function BrandFinanceModal({ product, isOpen, onClose }) {
   const [selectedTenure, setSelectedTenure] = useState(6);
+  const [tenureMode, setTenureMode] = useState('monthly'); // 'monthly' | 'daily'
 
   if (!isOpen || !product) return null;
 
@@ -10,15 +11,25 @@ export default function BrandFinanceModal({ product, isOpen, onClose }) {
   
   // Calculate EMI for different tenures
   const calculateEMI = (months) => Math.round(price / months);
+  const calculateDaily = (days) => Math.round(price / days);
 
   const tenures = [
-    { months: 3, label: '3 Months (No Cost)', emi: calculateEMI(3), processingFee: 0 },
-    { months: 6, label: '6 Months (No Cost)', emi: calculateEMI(6), processingFee: 0, popular: true },
-    { months: 9, label: '9 Months (Special)', emi: calculateEMI(9), processingFee: 0 },
-    { months: 12, label: '12 Months (Special Scheme)', emi: calculateEMI(12), processingFee: 0 }
+    { months: 3, days: 90, label: '3 Months (No Cost)', emi: calculateEMI(3), perDay: calculateDaily(90), processingFee: 0 },
+    { months: 6, days: 180, label: '6 Months (No Cost)', emi: calculateEMI(6), perDay: calculateDaily(180), processingFee: 0, popular: true },
+    { months: 9, days: 270, label: '9 Months (Special)', emi: calculateEMI(9), perDay: calculateDaily(270), processingFee: 0 },
+    { months: 12, days: 365, label: '12 Months (Special Scheme)', emi: calculateEMI(12), perDay: calculateDaily(365), processingFee: 0 }
+  ];
+
+  const dayWiseOptions = [
+    { days: 30, months: 1, label: '30 Days Option', perDay: calculateDaily(30), total: price },
+    { days: 90, months: 3, label: '90 Days Option', perDay: calculateDaily(90), total: price },
+    { days: 180, months: 6, label: '180 Days Option', perDay: calculateDaily(180), total: price, popular: true },
+    { days: 270, months: 9, label: '270 Days Option', perDay: calculateDaily(270), total: price },
+    { days: 365, months: 12, label: '365 Days Option', perDay: calculateDaily(365), total: price }
   ];
 
   const currentEmi = calculateEMI(selectedTenure);
+  const currentDaily = calculateDaily(selectedTenure * 30);
 
   const financePartners = [
     {
@@ -118,7 +129,7 @@ export default function BrandFinanceModal({ product, isOpen, onClose }) {
     const text = `Hello Audio Den Showroom, I want to check Brand Finance / No Cost EMI availability for:
 • Product: ${product.name}
 • Price: ₹${price.toLocaleString('en-IN')}
-• Preferred Tenure: ${selectedTenure} Months (₹${currentEmi.toLocaleString('en-IN')}/mo)
+• Preferred Tenure: ${selectedTenure} Months / ~${selectedTenure * 30} Days (₹${currentEmi.toLocaleString('en-IN')}/mo or just ₹${currentDaily.toLocaleString('en-IN')}/day)
 Available Options: Bajaj Finance, HDB, Poonawalla, TVS, DMI, Chola, IDFC, Axio, Home Credit, Benow, Pine Labs, Innoviti, Paytm.
 Please confirm document requirements and instant approval at New Katra store.`;
 
@@ -164,7 +175,7 @@ Please confirm document requirements and instant approval at New Katra store.`;
               </div>
               <div>
                 <div className="font-bold text-slate-900 text-xs sm:text-sm">
-                  Starting at ₹{calculateEMI(12).toLocaleString('en-IN')} / month
+                  Starting at ₹{calculateEMI(12).toLocaleString('en-IN')} / month <span className="text-amber-700 font-extrabold">(Just ₹{calculateDaily(365).toLocaleString('en-IN')} / day)</span>
                 </div>
                 <div className="text-[11px] text-amber-900 font-bold">
                   0% Interest No-Cost EMI • Instant 5-Minute Showroom Approval
@@ -176,39 +187,123 @@ Please confirm document requirements and instant approval at New Katra store.`;
             </span>
           </div>
 
-          {/* Tenure Selector */}
-          <div className="space-y-2">
-            <label className="font-bold text-slate-900 uppercase tracking-wide text-[11px] block">
-              Select 0% Interest EMI Tenure:
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {tenures.map((t) => (
+          {/* Tenure Selector Header with Day-Wise Options Switcher */}
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="font-bold text-slate-900 uppercase tracking-wide text-[11px] block">
+                Select 0% Interest EMI Tenure:
+              </label>
+
+              {/* Day-Wise vs Monthly Mode Selector */}
+              <div className="inline-flex p-0.5 bg-gray-100 rounded-lg border border-gray-200 self-start sm:self-auto">
                 <button
-                  key={t.months}
                   type="button"
-                  onClick={() => setSelectedTenure(t.months)}
-                  className={`p-3 rounded-xl border text-left transition-all relative ${
-                    selectedTenure === t.months
-                      ? 'border-slate-900 bg-slate-900 text-white shadow-md'
-                      : 'border-gray-200 hover:border-slate-400 bg-white text-slate-800'
+                  onClick={() => setTenureMode('monthly')}
+                  className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${
+                    tenureMode === 'monthly'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-gray-500 hover:text-slate-900'
                   }`}
                 >
-                  {t.popular && (
-                    <span className="absolute -top-2 right-2 bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded shadow-xs uppercase">
-                      Popular
-                    </span>
-                  )}
-                  <div className={`text-[11px] font-semibold ${selectedTenure === t.months ? 'text-gray-300' : 'text-gray-500'}`}>
-                    {t.months} Months
-                  </div>
-                  <div className="text-sm font-black mt-0.5">
-                    ₹{t.emi.toLocaleString('en-IN')}<span className="text-[10px] font-normal">/mo</span>
-                  </div>
-                  <div className={`text-[10px] font-bold mt-1 ${selectedTenure === t.months ? 'text-amber-400' : 'text-emerald-700'}`}>
-                    0% Interest EMI
-                  </div>
+                  📅 Monthly Options
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setTenureMode('daily')}
+                  className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all flex items-center gap-1 ${
+                    tenureMode === 'daily'
+                      ? 'bg-amber-400 text-slate-950 shadow-xs'
+                      : 'text-gray-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>☀️ Day-Wise Options</span>
+                  <span className="text-[9px] bg-slate-900 text-white px-1 rounded">NEW</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Monthly View */}
+            {tenureMode === 'monthly' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {tenures.map((t) => (
+                  <button
+                    key={t.months}
+                    type="button"
+                    onClick={() => setSelectedTenure(t.months)}
+                    className={`p-3 rounded-xl border text-left transition-all relative ${
+                      selectedTenure === t.months
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-md'
+                        : 'border-gray-200 hover:border-slate-400 bg-white text-slate-800'
+                    }`}
+                  >
+                    {t.popular && (
+                      <span className="absolute -top-2 right-2 bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.2 rounded shadow-xs uppercase">
+                        Popular
+                      </span>
+                    )}
+                    <div className={`text-[11px] font-semibold ${selectedTenure === t.months ? 'text-gray-300' : 'text-gray-500'}`}>
+                      {t.months} Months
+                    </div>
+                    <div className="text-sm font-black mt-0.5">
+                      ₹{t.emi.toLocaleString('en-IN')}<span className="text-[10px] font-normal">/mo</span>
+                    </div>
+                    {/* Day-Wise breakdown directly under each card */}
+                    <div className={`text-[11px] font-black mt-1 ${selectedTenure === t.months ? 'text-amber-400' : 'text-amber-800'}`}>
+                      ≈ ₹{t.perDay.toLocaleString('en-IN')}<span className="text-[9px] font-normal"> / day</span>
+                    </div>
+                    <div className={`text-[10px] font-bold mt-0.5 ${selectedTenure === t.months ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                      0% Interest EMI
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              /* Day-Wise Options Grid */
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                {dayWiseOptions.map((opt) => (
+                  <button
+                    key={opt.days}
+                    type="button"
+                    onClick={() => setSelectedTenure(opt.months)}
+                    className={`p-3 rounded-xl border text-left transition-all relative ${
+                      selectedTenure === opt.months
+                        ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-400 shadow-sm'
+                        : 'border-gray-200 hover:border-amber-300 bg-white text-slate-800'
+                    }`}
+                  >
+                    {opt.popular && (
+                      <span className="absolute -top-2 right-2 bg-slate-900 text-amber-400 text-[9px] font-black px-1.5 py-0.2 rounded shadow-xs uppercase">
+                        Top Choice
+                      </span>
+                    )}
+                    <div className="text-[11px] font-bold text-slate-600">
+                      {opt.days} Days
+                    </div>
+                    <div className="text-sm font-black text-slate-900 mt-0.5">
+                      ₹{opt.perDay.toLocaleString('en-IN')}<span className="text-[10px] font-normal text-gray-500"> / day</span>
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      ({opt.months} Mo @ ₹{calculateEMI(opt.months).toLocaleString('en-IN')}/mo)
+                    </div>
+                    <div className="text-[9px] font-black text-emerald-700 mt-1 bg-emerald-50 px-1 py-0.2 rounded inline-block">
+                      0% Interest
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Day-Wise Calculation Callout Box */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-base">💡</span>
+                <span className="text-[11px] text-slate-700">
+                  Daily Equivalent: <strong className="text-slate-900 font-bold">₹{currentDaily.toLocaleString('en-IN')} / day</strong> for {selectedTenure * 30} Days ({selectedTenure} Months @ ₹{currentEmi.toLocaleString('en-IN')}/mo)
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 self-start sm:self-auto">
+                ✓ 0% Interest • Zero Down Payment
+              </span>
             </div>
           </div>
 

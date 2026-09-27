@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 const CART_STORAGE_KEY = 'audio_den_cart';
+const COUPON_STORAGE_KEY = 'audio_den_cart_coupon';
 
 const getInitialCart = () => {
   try {
@@ -11,9 +12,18 @@ const getInitialCart = () => {
   }
 };
 
+const getInitialCoupon = () => {
+  try {
+    const saved = localStorage.getItem(COUPON_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const useCartStore = create((set, get) => ({
   items: getInitialCart(),
-  coupon: null, // { code: 'WELCOME10', discountPercent: 10 }
+  coupon: getInitialCoupon(), // Persisted { code: 'DIWALI20', discountPercent: 20 }
   couponError: null,
 
   addItem: (product, quantity = 1, selectedVariant = null) => {
@@ -78,6 +88,7 @@ export const useCartStore = create((set, get) => ({
 
   clearCart: () => {
     localStorage.removeItem(CART_STORAGE_KEY);
+    localStorage.removeItem(COUPON_STORAGE_KEY);
     set({ items: [], coupon: null, couponError: null });
   },
 
@@ -94,7 +105,7 @@ export const useCartStore = create((set, get) => ({
       if (stored) {
         const parsed = JSON.parse(stored);
         const dynamicOffer = (parsed.offers || []).find(
-          (o) => o.active !== false && o.couponCode && o.couponCode.trim().toUpperCase() === formatted
+          (o) => (o.active !== false && o.enabled !== false) && o.couponCode && o.couponCode.trim().toUpperCase() === formatted
         );
         if (dynamicOffer) {
           const discountPercent = Number(dynamicOffer.discountPercent || (dynamicOffer.discountType === 'percentage' ? dynamicOffer.discountValue : 0));
@@ -105,6 +116,7 @@ export const useCartStore = create((set, get) => ({
             discountAmount: discountAmount || 0,
             title: dynamicOffer.title || `${formatted} Offer`
           };
+          localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(couponData));
           set({ coupon: couponData, couponError: null });
           return {
             success: true,
@@ -118,6 +130,11 @@ export const useCartStore = create((set, get) => ({
 
     // 2. Predefined showroom and online promo codes
     const standardCoupons = {
+      'DIWALI20': { discountPercent: 20, title: 'Diwali Dhamaka Fest 20% Off' },
+      'MONSOON15': { discountPercent: 15, title: 'Monsoon Mega Sale 15% Off' },
+      'APPLEDAYS': { discountPercent: 8, title: 'Apple Days Special 8% Off' },
+      'OP10FEST': { discountPercent: 10, title: 'OnePlus Festive Offer 10% Off' },
+      'TVDEAL30': { discountPercent: 30, title: 'Smart TV Bonanza 30% Off' },
       'WELCOME10': { discountPercent: 10, title: 'Welcome First Order 10% Off' },
       'GOLD20': { discountPercent: 20, title: 'VIP Gold Member 20% Off' },
       'AUDIODEN5': { discountPercent: 5, title: 'Instant Store 5% Off' },
@@ -139,6 +156,7 @@ export const useCartStore = create((set, get) => ({
         discountAmount: match.discountAmount || 0,
         title: match.title
       };
+      localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(couponData));
       set({ coupon: couponData, couponError: null });
       return {
         success: true,
@@ -146,14 +164,15 @@ export const useCartStore = create((set, get) => ({
       };
     }
 
-    set({ couponError: `Invalid or expired coupon "${formatted}". Try WELCOME10, AUDIODEN5, or OFFER1000.` });
+    set({ couponError: `Invalid or expired coupon "${formatted}". Please enter a valid promo code.` });
     return {
       success: false,
-      message: `Invalid or expired coupon "${formatted}". Try WELCOME10, AUDIODEN5, or OFFER1000.`
+      message: `Invalid or expired coupon "${formatted}". Please enter a valid promo code.`
     };
   },
 
   removeCoupon: () => {
+    localStorage.removeItem(COUPON_STORAGE_KEY);
     set({ coupon: null, couponError: null });
   },
 
@@ -170,10 +189,11 @@ export const useCartStore = create((set, get) => ({
       }
     }
 
-    const taxableAmount = Math.max(0, subtotal - discount);
-    const tax = Math.round(taxableAmount * 0.18); // 18% GST standard on mobile/electronics
+    const payableSubtotal = Math.max(0, subtotal - discount);
     const shipping = subtotal > 1000 || items.length === 0 ? 0 : 150;
-    const grandTotal = taxableAmount + tax + shipping;
+    const grandTotal = payableSubtotal + shipping;
+    // 18% inclusive GST component
+    const tax = Math.round((payableSubtotal * 18) / 118);
 
     return {
       subtotal,

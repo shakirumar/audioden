@@ -383,9 +383,9 @@ export default function Navbar() {
       </div>
 
       {/* 3. FLIPKART / AMAZON CATEGORY STRIP / NAVIGATION RIBBON (Dynamic) */}
-      <div className="border-t border-gray-200 bg-white">
+      <div className="border-t border-gray-200 bg-white shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center justify-between overflow-x-auto py-2.5 text-xs font-semibold text-slate-700 space-x-6 no-scrollbar">
+          <nav className="flex items-center gap-5 sm:gap-6 overflow-x-auto py-2 px-0.5 text-xs font-semibold text-slate-700 no-scrollbar scroll-smooth whitespace-nowrap">
             <Link
               to="/shop"
               className="hover:text-amber-600 transition-colors whitespace-nowrap flex items-center gap-1.5 font-bold"

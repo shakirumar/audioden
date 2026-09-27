@@ -1,12 +1,26 @@
 import { create } from 'zustand';
-import db from '../services/db';
+import db, { DB_KEY } from '../services/db';
 import { initSupabaseRealtime, isSupabaseConfigured, supabase } from '../services/supabase';
+
+// Safely execute Supabase query thenables without throwing if .catch is missing
+const safeSupabase = (promiseLike) => {
+  if (!promiseLike) return;
+  Promise.resolve(promiseLike)
+    .then((result) => {
+      if (result && result.error) {
+        console.warn('Supabase DB operation warning:', result.error.message || result.error);
+      }
+    })
+    .catch((err) => {
+      console.warn('Supabase DB network/runtime warning:', err);
+    });
+};
 
 export const useProductStore = create((set, _get) => {
   // Listen for storage events across browser tabs
   if (typeof window !== 'undefined') {
     window.addEventListener('storage', (event) => {
-      if ((event.key === 'audio_den_catalog_v8' || event.key === 'audio_den_catalog_v7') && event.newValue) {
+      if (event.key === DB_KEY && event.newValue) {
         try {
           const fresh = JSON.parse(event.newValue);
           set(fresh);
@@ -25,12 +39,17 @@ export const useProductStore = create((set, _get) => {
     // Supabase cloud realtime subscription
     initSupabaseRealtime(async (table, payload) => {
       console.log(`⚡ Supabase Realtime event on ${table}:`, payload);
-      // Fetch latest data from Supabase if available
-      if (typeof db.syncFromSupabaseIfAvailable === 'function') {
-        await db.syncFromSupabaseIfAvailable();
+      try {
+        if (typeof db.syncTableFromSupabase === 'function' && table) {
+          const fresh = await db.syncTableFromSupabase(table);
+          if (fresh) set(fresh);
+        } else if (typeof db.syncFromSupabaseIfAvailable === 'function') {
+          await db.syncFromSupabaseIfAvailable();
+          set(db.get());
+        }
+      } catch (err) {
+        console.warn('Error applying realtime update:', err);
       }
-      // Reload catalog state from DB
-      set(db.get());
     });
   }
 
@@ -51,19 +70,24 @@ export const useProductStore = create((set, _get) => {
     },
 
     // ================= PRODUCTS CRUD =================
-    addProduct: (product) => {
-      const newProduct = db.addProduct(product);
+    addProduct: async (product) => {
+      const newProduct = await db.addProduct(product);
       set(db.get());
       return newProduct;
     },
 
-    updateProduct: (id, updatedFields) => {
-      db.updateProduct(id, updatedFields);
+    updateProduct: async (id, updatedFields) => {
+      await db.updateProduct(id, updatedFields);
       set(db.get());
     },
 
-    deleteProduct: (id) => {
-      db.deleteProduct(id);
+    deleteProduct: async (id) => {
+      await db.deleteProduct(id);
+      set(db.get());
+    },
+
+    deleteProducts: async (ids) => {
+      await db.deleteProducts(ids);
       set(db.get());
     },
 
@@ -82,34 +106,35 @@ export const useProductStore = create((set, _get) => {
         id: 'cat-' + Date.now(),
         count: 0
       };
-      data.categories = [...data.categories, newCat];
+      data.categories = [...(data.categories || []), newCat];
       db.save(data);
       set({ categories: data.categories });
       
       if (isSupabaseConfigured() && supabase) {
-        supabase.from('categories').insert([newCat]).catch(console.warn);
+        safeSupabase(supabase.from('categories').insert([newCat]));
       }
+      return newCat;
     },
 
     updateCategory: (id, updatedFields) => {
       const data = db.get();
-      data.categories = data.categories.map((c) => (c.id === id ? { ...c, ...updatedFields } : c));
+      data.categories = (data.categories || []).map((c) => (c.id === id ? { ...c, ...updatedFields } : c));
       db.save(data);
       set({ categories: data.categories });
       
       if (isSupabaseConfigured() && supabase) {
-        supabase.from('categories').update(updatedFields).eq('id', id).catch(console.warn);
+        safeSupabase(supabase.from('categories').update(updatedFields).eq('id', id));
       }
     },
 
     deleteCategory: (id) => {
       const data = db.get();
-      data.categories = data.categories.filter((c) => c.id !== id);
+      data.categories = (data.categories || []).filter((c) => c.id !== id);
       db.save(data);
       set({ categories: data.categories });
       
       if (isSupabaseConfigured() && supabase) {
-        supabase.from('categories').delete().eq('id', id).catch(console.warn);
+        safeSupabase(supabase.from('categories').delete().eq('id', id));
       }
     },
 
@@ -120,34 +145,35 @@ export const useProductStore = create((set, _get) => {
         ...brand,
         id: 'brand-' + Date.now()
       };
-      data.brands = [...data.brands, newBrand];
+      data.brands = [...(data.brands || []), newBrand];
       db.save(data);
       set({ brands: data.brands });
       
       if (isSupabaseConfigured() && supabase) {
-        supabase.from('brands').insert([newBrand]).catch(console.warn);
+        safeSupabase(supabase.from('brands').insert([newBrand]));
       }
+      return newBrand;
     },
 
     updateBrand: (id, updatedFields) => {
       const data = db.get();
-      data.brands = data.brands.map((b) => (b.id === id ? { ...b, ...updatedFields } : b));
+      data.brands = (data.brands || []).map((b) => (b.id === id ? { ...b, ...updatedFields } : b));
       db.save(data);
       set({ brands: data.brands });
       
       if (isSupabaseConfigured() && supabase) {
-        supabase.from('brands').update(updatedFields).eq('id', id).catch(console.warn);
+        safeSupabase(supabase.from('brands').update(updatedFields).eq('id', id));
       }
     },
 
     deleteBrand: (id) => {
       const data = db.get();
-      data.brands = data.brands.filter((b) => b.id !== id);
+      data.brands = (data.brands || []).filter((b) => b.id !== id);
       db.save(data);
       set({ brands: data.brands });
       
       if (isSupabaseConfigured() && supabase) {
-        supabase.from('brands').delete().eq('id', id).catch(console.warn);
+        safeSupabase(supabase.from('brands').delete().eq('id', id));
       }
     },
 
@@ -170,9 +196,10 @@ export const useProductStore = create((set, _get) => {
           (orderData.customerPhone && c.phone === orderData.customerPhone)
       );
 
+      let customerToSave = null;
       if (existingCustIndex >= 0) {
         const cust = data.customers[existingCustIndex];
-        data.customers[existingCustIndex] = {
+        customerToSave = {
           ...cust,
           name: orderData.customerName || cust.name,
           phone: orderData.customerPhone || cust.phone,
@@ -181,8 +208,9 @@ export const useProductStore = create((set, _get) => {
           totalSpent: (cust.totalSpent || 0) + (orderData.totalAmount || 0),
           lastOrderDate: newOrder.date
         };
+        data.customers[existingCustIndex] = customerToSave;
       } else {
-        const newCustomer = {
+        customerToSave = {
           id: 'cust-' + Date.now(),
           name: orderData.customerName || 'Valued Customer',
           email: orderData.customerEmail || 'customer@audioden.com',
@@ -193,26 +221,41 @@ export const useProductStore = create((set, _get) => {
           joinedDate: newOrder.date,
           lastOrderDate: newOrder.date
         };
-        data.customers = [newCustomer, ...(data.customers || [])];
+        data.customers = [customerToSave, ...(data.customers || [])];
       }
 
       db.save(data);
       set({ orders: data.orders, customers: data.customers });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('orders').insert([newOrder]));
+        if (customerToSave) {
+          safeSupabase(supabase.from('customers').upsert([customerToSave]));
+        }
+      }
       return newOrder;
     },
 
     updateOrderStatus: (orderId, newStatus) => {
       const data = db.get();
-      data.orders = data.orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o));
+      data.orders = (data.orders || []).map((o) => (o.id === orderId ? { ...o, status: newStatus } : o));
       db.save(data);
       set({ orders: data.orders });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('orders').update({ status: newStatus }).eq('id', orderId));
+      }
     },
 
     deleteOrder: (orderId) => {
       const data = db.get();
-      data.orders = data.orders.filter((o) => o.id !== orderId);
+      data.orders = (data.orders || []).filter((o) => o.id !== orderId);
       db.save(data);
       set({ orders: data.orders });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('orders').delete().eq('id', orderId));
+      }
     },
 
     // ================= CUSTOMERS MANAGEMENT =================
@@ -228,6 +271,10 @@ export const useProductStore = create((set, _get) => {
       data.customers = [newCust, ...(data.customers || [])];
       db.save(data);
       set({ customers: data.customers });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('customers').insert([newCust]));
+      }
       return newCust;
     },
 
@@ -236,6 +283,10 @@ export const useProductStore = create((set, _get) => {
       data.customers = (data.customers || []).map((c) => (c.id === id ? { ...c, ...updatedFields } : c));
       db.save(data);
       set({ customers: data.customers });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('customers').update(updatedFields).eq('id', id));
+      }
     },
 
     deleteCustomer: (id) => {
@@ -243,6 +294,10 @@ export const useProductStore = create((set, _get) => {
       data.customers = (data.customers || []).filter((c) => c.id !== id);
       db.save(data);
       set({ customers: data.customers });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('customers').delete().eq('id', id));
+      }
     },
 
     // ================= BANNERS MANAGEMENT =================
@@ -253,23 +308,43 @@ export const useProductStore = create((set, _get) => {
         id: 'banner-' + Date.now(),
         enabled: true
       };
-      data.banners = [...data.banners, newBanner];
+      data.banners = [...(data.banners || []), newBanner];
       db.save(data);
       set({ banners: data.banners });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('banners').insert([newBanner]));
+      }
+      return newBanner;
     },
 
     toggleBanner: (id) => {
       const data = db.get();
-      data.banners = data.banners.map((b) => (b.id === id ? { ...b, enabled: !b.enabled } : b));
+      let updatedBanner = null;
+      data.banners = (data.banners || []).map((b) => {
+        if (b.id === id) {
+          updatedBanner = { ...b, enabled: !b.enabled };
+          return updatedBanner;
+        }
+        return b;
+      });
       db.save(data);
       set({ banners: data.banners });
+
+      if (isSupabaseConfigured() && supabase && updatedBanner) {
+        safeSupabase(supabase.from('banners').update({ enabled: updatedBanner.enabled }).eq('id', id));
+      }
     },
 
     deleteBanner: (id) => {
       const data = db.get();
-      data.banners = data.banners.filter((b) => b.id !== id);
+      data.banners = (data.banners || []).filter((b) => b.id !== id);
       db.save(data);
       set({ banners: data.banners });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('banners').delete().eq('id', id));
+      }
     },
 
     // ================= REVIEWS MANAGEMENT =================
@@ -281,23 +356,36 @@ export const useProductStore = create((set, _get) => {
         date: new Date().toISOString().split('T')[0],
         approved: true
       };
-      data.reviews = [newReview, ...data.reviews];
+      data.reviews = [newReview, ...(data.reviews || [])];
       db.save(data);
       set({ reviews: data.reviews });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('reviews').insert([newReview]));
+      }
+      return newReview;
     },
 
     approveReview: (id) => {
       const data = db.get();
-      data.reviews = data.reviews.map((r) => (r.id === id ? { ...r, approved: true } : r));
+      data.reviews = (data.reviews || []).map((r) => (r.id === id ? { ...r, approved: true } : r));
       db.save(data);
       set({ reviews: data.reviews });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('reviews').update({ approved: true }).eq('id', id));
+      }
     },
 
     deleteReview: (id) => {
       const data = db.get();
-      data.reviews = data.reviews.filter((r) => r.id !== id);
+      data.reviews = (data.reviews || []).filter((r) => r.id !== id);
       db.save(data);
       set({ reviews: data.reviews });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('reviews').delete().eq('id', id));
+      }
     },
 
     // ================= OFFERS MANAGEMENT =================
@@ -311,6 +399,11 @@ export const useProductStore = create((set, _get) => {
       data.offers = [...(data.offers || []), newOffer];
       db.save(data);
       set({ offers: data.offers });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('offers').insert([newOffer]));
+      }
+      return newOffer;
     },
 
     updateOffer: (id, updatedFields) => {
@@ -318,13 +411,28 @@ export const useProductStore = create((set, _get) => {
       data.offers = (data.offers || []).map((o) => (o.id === id ? { ...o, ...updatedFields } : o));
       db.save(data);
       set({ offers: data.offers });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('offers').update(updatedFields).eq('id', id));
+      }
     },
 
     toggleOffer: (id) => {
       const data = db.get();
-      data.offers = (data.offers || []).map((o) => (o.id === id ? { ...o, enabled: !o.enabled } : o));
+      let updatedOffer = null;
+      data.offers = (data.offers || []).map((o) => {
+        if (o.id === id) {
+          updatedOffer = { ...o, enabled: !o.enabled };
+          return updatedOffer;
+        }
+        return o;
+      });
       db.save(data);
       set({ offers: data.offers });
+
+      if (isSupabaseConfigured() && supabase && updatedOffer) {
+        safeSupabase(supabase.from('offers').update({ enabled: updatedOffer.enabled }).eq('id', id));
+      }
     },
 
     deleteOffer: (id) => {
@@ -332,6 +440,10 @@ export const useProductStore = create((set, _get) => {
       data.offers = (data.offers || []).filter((o) => o.id !== id);
       db.save(data);
       set({ offers: data.offers });
+
+      if (isSupabaseConfigured() && supabase) {
+        safeSupabase(supabase.from('offers').delete().eq('id', id));
+      }
     }
   };
 });

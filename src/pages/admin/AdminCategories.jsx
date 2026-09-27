@@ -41,18 +41,26 @@ export default function AdminCategories() {
     e.preventDefault();
     if (!name.trim()) return;
 
-    if (editingId) {
-      updateCategory(editingId, {
-        name,
-        slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
-        image: image || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80'
-      });
-    } else {
-      addCategory({
-        name,
-        slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
-        image: image || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80'
-      });
+    try {
+      const cleanName = name.trim();
+      const cleanSlug = slug.trim() || cleanName.toLowerCase().replace(/\s+/g, '-');
+      const cleanImage = image.trim() || 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=600&q=80';
+
+      if (editingId) {
+        updateCategory(editingId, {
+          name: cleanName,
+          slug: cleanSlug,
+          image: cleanImage
+        });
+      } else {
+        addCategory({
+          name: cleanName,
+          slug: cleanSlug,
+          image: cleanImage
+        });
+      }
+    } catch (err) {
+      console.error('Category save error:', err);
     }
 
     setIsModalOpen(false);

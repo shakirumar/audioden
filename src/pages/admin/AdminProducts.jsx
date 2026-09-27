@@ -1,13 +1,17 @@
 import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Plus, Edit2, Trash2, GripVertical, X, Search, Image as ImageIcon, 
-  UploadCloud, Sparkles, Gift, Loader2, Cloud, CheckCircle2
+  UploadCloud, Sparkles, Gift, Loader2, Cloud, CheckCircle2, Layers,
+  ExternalLink, AlertTriangle
 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useProductStore } from '../../store/useProductStore';
 import { uploadToCloudinary, isCloudinaryConfigured } from '../../services/cloudinary';
+import { extractModelFamily } from '../../utils/productUtils';
+import VariantPriceManager from '../../components/VariantPriceManager';
 
 const BADGE_THEMES = {
   gold: { label: 'Gold Sunrise', bg: 'from-amber-500 to-orange-500', text: 'text-slate-950' },
@@ -18,7 +22,7 @@ const BADGE_THEMES = {
 };
 
 // Sortable Table Row Component
-function SortableItem({ id, product, onEdit, onDelete }) {
+function SortableItem({ id, product, onEdit, onDelete, isSelected, onToggleSelect }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -32,8 +36,16 @@ function SortableItem({ id, product, onEdit, onDelete }) {
   const theme = BADGE_THEMES[product.offerBadgeColor] || BADGE_THEMES.gold;
 
   return (
-    <tr ref={setNodeRef} style={style} className="border-b border-gray-200 hover:bg-amber-50/30 bg-white text-xs transition-colors">
-      <td className="px-3 py-3 whitespace-nowrap w-10">
+    <tr ref={setNodeRef} style={style} className={`border-b border-gray-200 hover:bg-amber-50/30 ${isSelected ? 'bg-amber-50/60' : 'bg-white'} text-xs transition-colors`}>
+      <td className="px-3 py-3 whitespace-nowrap w-8">
+        <input
+          type="checkbox"
+          checked={!!isSelected}
+          onChange={() => onToggleSelect(product.id)}
+          className="rounded border-gray-300 text-amber-500 focus:ring-amber-400 w-4 h-4 cursor-pointer"
+        />
+      </td>
+      <td className="px-2 py-3 whitespace-nowrap w-8">
         <button {...attributes} {...listeners} className="cursor-grab text-gray-400 hover:text-slate-700 p-1">
           <GripVertical className="w-4 h-4" />
         </button>
@@ -95,17 +107,33 @@ function SortableItem({ id, product, onEdit, onDelete }) {
         </span>
       </td>
       <td className="px-4 py-3 whitespace-nowrap text-right font-medium">
-        <div className="flex justify-end gap-1.5">
+        <div className="flex justify-end gap-1.5 items-center">
+          <a
+            href={`/product/${product.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors font-bold text-[10px]"
+            title="View Live Product on Frontend Storefront"
+          >
+            <ExternalLink className="w-3 h-3 text-blue-600" /> Live
+          </a>
+          <Link
+            to={`/admin/add-product?edit=${product.id}`}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-slate-900 border border-amber-300 transition-colors font-bold text-[10px]"
+            title="Edit Full Page & Manage Variants"
+          >
+            <Edit2 className="w-3 h-3 text-amber-600" /> Full Edit
+          </Link>
           <button
             onClick={() => onEdit(product)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 transition-colors font-bold text-[10px]"
-            title="Edit Product"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 transition-colors font-bold text-[10px]"
+            title="Quick Modal Edit"
           >
-            <Edit2 className="w-3.5 h-3.5" /> Edit
+            Quick
           </button>
           <button
-            onClick={() => onDelete(product.id)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors font-bold text-[10px]"
+            onClick={() => onDelete(product)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors font-bold text-[10px] cursor-pointer"
             title="Delete Product"
           >
             <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -118,7 +146,7 @@ function SortableItem({ id, product, onEdit, onDelete }) {
 
 export default function AdminProducts() {
   const { 
-    products, categories, brands, addProduct, updateProduct, deleteProduct, 
+    products, categories, brands, addProduct, updateProduct, deleteProduct, deleteProducts,
     reorderProducts, addCategory, addBrand, isSupabaseConfigured 
   } = useProductStore();
 
@@ -154,6 +182,7 @@ export default function AdminProducts() {
     stock: 15,
     description: '',
     images: [],
+    variants: [],
     features: ['1-Year Official Brand Warranty', 'Free Doorstep Delivery in Prayagraj'],
     specifications: [
       { key: 'Display', value: '6.7 inch OLED 120Hz' },
@@ -205,6 +234,7 @@ export default function AdminProducts() {
       images: [
         'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80'
       ],
+      variants: [],
       features: [
         '100% Genuine Brand Product',
         '1-Year Official Manufacturer Warranty',
@@ -253,6 +283,7 @@ export default function AdminProducts() {
       images: p.images && p.images.length > 0 ? p.images : [
         'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80'
       ],
+      variants: p.variants || [],
       features: p.features && p.features.length > 0 ? p.features : ['1-Year Manufacturer Warranty'],
       specifications: specsArray,
       isFlashSale: !!p.isFlashSale,
@@ -396,7 +427,7 @@ export default function AdminProducts() {
   };
 
   // Submit Handler
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
 
     // Convert specs array to object
@@ -407,18 +438,25 @@ export default function AdminProducts() {
       }
     });
 
+    const defaultVariant = formData.variants?.find((v) => v.isDefault) || formData.variants?.[0];
+
     const payload = {
       name: formData.name.trim(),
+      modelGroup: formData.name.replace(/\([^)]*\)/g, '').trim(),
       sku: formData.sku.trim(),
       brand: formData.brand.trim() || 'Generic',
       category: formData.category.trim() || 'Electronics',
-      price: Number(formData.price),
-      salePrice: Number(formData.salePrice),
+      price: defaultVariant ? Number(defaultVariant.price) : Number(formData.price),
+      salePrice: defaultVariant ? Number(defaultVariant.salePrice) : Number(formData.salePrice),
       stock: Number(formData.stock),
       description: formData.description,
       images: formData.images.length > 0 ? formData.images : [
         'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80'
       ],
+      variants: formData.variants || [],
+      storage: defaultVariant?.storage || '128GB',
+      ram: defaultVariant?.ram || '8GB',
+      variantLabel: defaultVariant?.variantLabel || '128GB',
       features: formData.features.filter(Boolean),
       specifications: specObj,
       isFlashSale: formData.isFlashSale,
@@ -460,17 +498,27 @@ export default function AdminProducts() {
       }
     }
 
-    if (editingId) {
-      updateProduct(editingId, payload);
-      setToastMessage(`✓ "${payload.name}" updated successfully in Real-Time!`);
-    } else {
-      addProduct(payload);
-      setToastMessage(`✓ "${payload.name}" added to inventory & published live to Frontend!`);
+    try {
+      if (editingId) {
+        await updateProduct(editingId, payload);
+        setToastMessage(`✓ "${payload.name}" updated successfully in Real-Time!`);
+      } else {
+        await addProduct(payload);
+        setToastMessage(`✓ "${payload.name}" added to inventory & published live to Frontend!`);
+      }
+    } catch (err) {
+      console.error('Save product error:', err);
+      setToastMessage(`❌ Error saving product: ${err.message || 'Unknown error'}`);
     }
 
     setTimeout(() => setToastMessage(''), 5000);
     setIsModalOpen(false);
   };
+
+  // Multi-Select and Smart Deletion State
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { product, siblings, modelFamily }
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter products
   const filteredProducts = products.filter((p) => {
@@ -484,6 +532,89 @@ export default function AdminProducts() {
 
     return matchSearch && matchCategory && matchBrand;
   });
+
+  const handleToggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredProducts.length && filteredProducts.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredProducts.map((p) => p.id));
+    }
+  };
+
+  const initiateDelete = (product) => {
+    const modelFamily = extractModelFamily(product);
+    const siblings = products.filter(
+      (p) =>
+        (p.brand || '').toLowerCase() === (product.brand || '').toLowerCase() &&
+        extractModelFamily(p).toLowerCase() === modelFamily.toLowerCase()
+    );
+    setDeleteTarget({ product, siblings, modelFamily });
+  };
+
+  const handleConfirmDeleteSingle = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteProduct(deleteTarget.product.id);
+      setSelectedIds((prev) => prev.filter((id) => id !== deleteTarget.product.id));
+      setToastMessage(`✓ Variant "${deleteTarget.product.name}" was permanently deleted.`);
+      setTimeout(() => setToastMessage(''), 4000);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setToastMessage(`❌ Error deleting product: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleConfirmDeleteModel = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const idsToDelete = deleteTarget.siblings.map((s) => s.id);
+      await deleteProducts(idsToDelete);
+      setSelectedIds((prev) => prev.filter((id) => !idsToDelete.includes(id)));
+      setToastMessage(
+        `✓ All ${idsToDelete.length} variants of "${deleteTarget.modelFamily}" were permanently deleted. Removed from storefront!`
+      );
+      setTimeout(() => setToastMessage(''), 5000);
+    } catch (err) {
+      console.error('Delete model error:', err);
+      setToastMessage(`❌ Error deleting model: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (
+      window.confirm(
+        `Are you sure you want to permanently delete all ${selectedIds.length} selected products from inventory? They will be removed from the customer storefront.`
+      )
+    ) {
+      setIsDeleting(true);
+      try {
+        await deleteProducts(selectedIds);
+        setToastMessage(`✓ ${selectedIds.length} products were permanently deleted.`);
+        setSelectedIds([]);
+        setTimeout(() => setToastMessage(''), 4000);
+      } catch (err) {
+        console.error('Batch delete error:', err);
+        setToastMessage(`❌ Batch delete failed: ${err.message || 'Unknown error'}`);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
 
   const calculatedDiscount = formData.price > formData.salePrice
     ? Math.round(((formData.price - formData.salePrice) / formData.price) * 100)
@@ -518,15 +649,23 @@ export default function AdminProducts() {
             </span>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Add new electronics, manage stock, upload photos via drag & drop, and add custom categories or brands.
+            Add new electronics, manage stock, upload photos via drag & drop, and configure variant pricing.
           </p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-colors self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" /> Add New Product
-        </button>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          <Link
+            to="/admin/add-product"
+            className="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center gap-2 shadow-sm transition-all hover:scale-[1.02]"
+          >
+            <Plus className="w-4 h-4" /> Add Product (Full Page)
+          </Link>
+          <button
+            onClick={openAddModal}
+            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl flex items-center gap-2 shadow-sm transition-colors"
+          >
+            Quick Add
+          </button>
+        </div>
       </div>
 
       {/* 2. Filter & Search Bar */}
@@ -582,6 +721,32 @@ export default function AdminProducts() {
         </div>
       </div>
 
+      {/* Batch Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-amber-500 text-slate-950 p-3.5 rounded-xl shadow-md flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2 font-bold text-xs">
+            <CheckCircle2 className="w-4 h-4 text-slate-900" />
+            <span>{selectedIds.length} products selected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs cursor-pointer"
+            >
+              Clear
+            </button>
+            <button
+              disabled={isDeleting}
+              onClick={handleDeleteSelected}
+              className="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              Delete Selected ({selectedIds.length})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 3. Products Table with Dnd Reordering */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -589,7 +754,16 @@ export default function AdminProducts() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 <tr>
-                  <th scope="col" className="px-3 py-3 text-left w-10">Sort</th>
+                  <th scope="col" className="px-3 py-3 text-left w-8">
+                    <input
+                      type="checkbox"
+                      checked={filteredProducts.length > 0 && selectedIds.length === filteredProducts.length}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 text-amber-500 focus:ring-amber-400 w-4 h-4 cursor-pointer"
+                      title="Select All"
+                    />
+                  </th>
+                  <th scope="col" className="px-2 py-3 text-left w-8">Sort</th>
                   <th scope="col" className="px-4 py-3 text-left">Product / SKU</th>
                   <th scope="col" className="px-4 py-3 text-left">Brand</th>
                   <th scope="col" className="px-4 py-3 text-left">Category</th>
@@ -605,8 +779,10 @@ export default function AdminProducts() {
                       key={product.id}
                       id={product.id}
                       product={product}
+                      isSelected={selectedIds.includes(product.id)}
+                      onToggleSelect={handleToggleSelect}
                       onEdit={openEditModal}
-                      onDelete={deleteProduct}
+                      onDelete={initiateDelete}
                     />
                   ))}
                 </SortableContext>
@@ -951,6 +1127,28 @@ export default function AdminProducts() {
                 </div>
               </div>
 
+              {/* VARIANT-WISE PRICE ENTRY SECTION */}
+              <VariantPriceManager
+                variants={formData.variants || []}
+                onChange={(newVariants) => {
+                  const def = newVariants.find((v) => v.isDefault) || newVariants[0];
+                  setFormData((prev) => ({
+                    ...prev,
+                    variants: newVariants,
+                    ...(def ? {
+                      price: def.price,
+                      salePrice: def.salePrice,
+                      storage: def.storage,
+                      ram: def.ram,
+                      variantLabel: def.variantLabel
+                    } : {})
+                  }));
+                }}
+                basePrice={formData.price}
+                baseSalePrice={formData.salePrice}
+                productName={formData.name || 'Mobile Phone'}
+              />
+
               {/* SECTION C: DESCRIPTION */}
               <div>
                 <label className="block text-gray-700 font-bold mb-1">Product Description</label>
@@ -1264,6 +1462,109 @@ export default function AdminProducts() {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Smart Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200">
+            <div className="flex items-center gap-3 text-red-600 mb-3">
+              <div className="p-2.5 rounded-full bg-red-100">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Delete Product from Inventory</h3>
+                <p className="text-xs text-gray-500">Remove from catalog & customer storefront</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 my-4 text-xs space-y-1.5">
+              <div className="font-bold text-slate-900 text-sm">{deleteTarget.product.name}</div>
+              <div className="text-gray-600 flex items-center gap-3">
+                <span>Brand: <strong className="text-slate-800">{deleteTarget.product.brand}</strong></span>
+                <span>SKU: <strong className="text-slate-800">{deleteTarget.product.sku || 'N/A'}</strong></span>
+              </div>
+              <div className="text-gray-600">
+                Model: <span className="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">{deleteTarget.modelFamily}</span>
+              </div>
+            </div>
+
+            {deleteTarget.siblings && deleteTarget.siblings.length > 1 ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed">
+                  <p className="font-bold flex items-center gap-1.5 text-amber-800">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span>Multiple Variants Found ({deleteTarget.siblings.length} variants)</span>
+                  </p>
+                  <p className="mt-1">
+                    This phone model has <strong>{deleteTarget.siblings.length} storage variants</strong> in inventory:
+                  </p>
+                  <ul className="list-disc pl-5 mt-1 space-y-0.5 text-[11px] text-amber-800 max-h-28 overflow-y-auto">
+                    {deleteTarget.siblings.map((s) => (
+                      <li key={s.id} className={s.id === deleteTarget.product.id ? 'font-bold text-red-700' : ''}>
+                        {s.name} ({s.storage || s.variantLabel || 'Standard'}) - ₹{(s.salePrice || s.price).toLocaleString('en-IN')}
+                        {s.id === deleteTarget.product.id && ' ← (Selected)'}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-[11px] font-medium text-amber-900">
+                    💡 <strong>Tip:</strong> If you want to remove this phone model completely from the customer storefront (<code className="font-mono bg-white px-1 rounded">/shop</code>), choose <strong>Delete Entire Model</strong>.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    disabled={isDeleting}
+                    onClick={handleConfirmDeleteModel}
+                    className="w-full py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+                  >
+                    {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Delete Entire Model (All {deleteTarget.siblings.length} Variants)
+                  </button>
+
+                  <button
+                    disabled={isDeleting}
+                    onClick={handleConfirmDeleteSingle}
+                    className="w-full py-2 px-4 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    Delete Only This SKU Variant ({deleteTarget.product.storage || deleteTarget.product.variantLabel || 'Selected'})
+                  </button>
+
+                  <button
+                    disabled={isDeleting}
+                    onClick={() => setDeleteTarget(null)}
+                    className="w-full py-2 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-xs transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-600">
+                  Are you sure you want to permanently delete this product? It will immediately be removed from the catalog and customer storefront.
+                </p>
+                <div className="flex gap-2 justify-end pt-2">
+                  <button
+                    disabled={isDeleting}
+                    onClick={() => setDeleteTarget(null)}
+                    className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-xs transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={isDeleting}
+                    onClick={handleConfirmDeleteSingle}
+                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                  >
+                    {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Yes, Delete Product
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

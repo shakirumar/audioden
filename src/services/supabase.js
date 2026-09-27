@@ -65,9 +65,29 @@ export const initSupabaseRealtime = (onDbChange) => {
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => onDbChange('orders', payload)
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'customers' },
+        (payload) => onDbChange('customers', payload)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'banners' },
+        (payload) => onDbChange('banners', payload)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reviews' },
+        (payload) => onDbChange('reviews', payload)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'offers' },
+        (payload) => onDbChange('offers', payload)
+      )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('🟢 Supabase Realtime channel connected successfully');
+          console.log('🟢 Supabase Realtime channel connected for all 8 tables');
         }
       });
 

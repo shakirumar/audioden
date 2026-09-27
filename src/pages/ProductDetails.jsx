@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Star, ShoppingBag, Heart, ShieldCheck, Truck, 
-  Check, ChevronRight, Zap, Tag, 
+  Check, ChevronRight, Zap, Tag,
   MapPin, CheckCircle2, MessageCircle, Gift, Sparkles, CreditCard
 } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
@@ -10,6 +10,7 @@ import { useCartStore } from '../store/useCartStore';
 import { useWishlistStore } from '../store/useWishlistStore';
 import ProductCard from '../components/ProductCard';
 import BrandFinanceModal from '../components/BrandFinanceModal';
+import { extractModelFamily, extractStorageFromText, parseStorageCapacity } from '../utils/productUtils';
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -19,19 +20,190 @@ export default function ProductDetails() {
   const { isInWishlist, toggleWishlist } = useWishlistStore();
 
   const product = products.find((p) => p.id === id) || products[0];
+  const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedImage, setSelectedImage] = useState(product?.images?.[0] || '');
+
+  // Calculate all model variants (explicit admin variants + siblings in catalog + smart fallback tiers for any device)
+  const allVariants = useMemo(() => {
+    if (!product) return [];
+
+    // 1. If explicit product.variants array is provided by admin, use it directly!
+    if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      return product.variants.map((v, idx) => ({
+        id: v.id || `${product.id}-var-${idx}`,
+        name: v.name || `${product.name.replace(/\([^)]*\)/g, '').trim()} (${v.variantLabel || v.storage || ''})`,
+        variantLabel: v.variantLabel || v.storage || `Variant ${idx + 1}`,
+        storage: v.storage || v.variantLabel || '',
+        ram: v.ram || product.ram || '',
+        price: Number(v.price || product.price),
+        salePrice: Number(v.salePrice || v.price || product.salePrice || product.price),
+        stock: v.stock !== undefined ? Number(v.stock) : (product.stock || 10),
+        images: (v.images && v.images.length > 0) ? v.images : product.images,
+        sku: v.sku || `${product.sku || 'SKU'}-${v.storage || idx}`,
+        isDefault: !!v.isDefault
+      }));
+    }
+
+    // 2. Find matching sibling products using smart model family
+    const targetModel = extractModelFamily(product).toLowerCase();
+    const brand = (product.brand || '').toLowerCase();
+    let siblings = (products || []).filter((p) => {
+      if ((p.brand || '').toLowerCase() !== brand) return false;
+      return extractModelFamily(p).toLowerCase() === targetModel;
+    });
+
+    if (siblings.length > 1) {
+      const storageMap = new Map();
+      siblings.forEach((s) => {
+        const stor = s.storage || extractStorageFromText(s.name) || extractStorageFromText(s.sku) || s.variantLabel || '';
+        const key = stor || s.id;
+        if (!storageMap.has(key) || (s.salePrice || s.price) < (storageMap.get(key).salePrice || storageMap.get(key).price)) {
+          storageMap.set(key, { ...s, storage: stor, variantLabel: stor || 'Standard' });
+        }
+      });
+
+      return Array.from(storageMap.values()).sort((a, b) => {
+        const sA = parseStorageCapacity(a.storage || a.variantLabel);
+        const sB = parseStorageCapacity(b.storage || b.variantLabel);
+        if (sA !== sB && sA > 0 && sB > 0) return sA - sB;
+        return (a.salePrice || a.price) - (b.salePrice || b.price);
+      });
+    }
+
+    // 3. Smart synthesized storage tiers if single catalog product
+    const curCap = parseStorageCapacity(product.storage || extractStorageFromText(product.name));
+    const baseSale = product.salePrice || product.price;
+    const baseMRP = product.price;
+    const baseRam = product.ram || '8GB';
+
+    if (curCap === 128 || (!curCap && baseSale < 70000)) {
+      return [
+        {
+          id: product.id,
+          name: product.name,
+          variantLabel: '128GB',
+          storage: '128GB',
+          ram: baseRam,
+          price: baseMRP,
+          salePrice: baseSale,
+          images: product.images
+        },
+        {
+          id: `${product.id}-256`,
+          name: product.name.replace(/128\s*GB/i, '256GB'),
+          variantLabel: '256GB',
+          storage: '256GB',
+          ram: baseRam,
+          price: Math.round(baseMRP * 1.15),
+          salePrice: Math.round(baseSale + (baseSale > 50000 ? 10000 : 5000)),
+          images: product.images
+        },
+        {
+          id: `${product.id}-512`,
+          name: product.name.replace(/128\s*GB/i, '512GB'),
+          variantLabel: '512GB',
+          storage: '512GB',
+          ram: baseRam,
+          price: Math.round(baseMRP * 1.35),
+          salePrice: Math.round(baseSale + (baseSale > 50000 ? 25000 : 12000)),
+          images: product.images
+        }
+      ];
+    } else if (curCap === 256 || (!curCap && baseSale >= 70000 && baseSale < 140000)) {
+      const isHighEnd = baseSale >= 100000;
+      return [
+        {
+          id: `${product.id}-128`,
+          name: product.name.replace(/256\s*GB/i, '128GB'),
+          variantLabel: '128GB',
+          storage: '128GB',
+          ram: baseRam,
+          price: Math.round(baseMRP * 0.9),
+          salePrice: Math.max(1000, Math.round(baseSale - (isHighEnd ? 15000 : 5000))),
+          images: product.images
+        },
+        {
+          id: product.id,
+          name: product.name,
+          variantLabel: '256GB',
+          storage: '256GB',
+          ram: baseRam,
+          price: baseMRP,
+          salePrice: baseSale,
+          images: product.images
+        },
+        {
+          id: `${product.id}-512`,
+          name: product.name.replace(/256\s*GB/i, '512GB'),
+          variantLabel: '512GB',
+          storage: '512GB',
+          ram: baseRam,
+          price: Math.round(baseMRP * 1.15),
+          salePrice: Math.round(baseSale + (isHighEnd ? 20000 : 7000)),
+          images: product.images
+        },
+        ...(isHighEnd ? [{
+          id: `${product.id}-1tb`,
+          name: product.name.replace(/256\s*GB/i, '1TB'),
+          variantLabel: '1TB',
+          storage: '1TB',
+          ram: baseRam,
+          price: Math.round(baseMRP * 1.35),
+          salePrice: Math.round(baseSale + 40000),
+          images: product.images
+        }] : [])
+      ];
+    } else if (curCap === 512 || (!curCap && baseSale >= 140000)) {
+      return [
+        {
+          id: `${product.id}-256`,
+          name: product.name.replace(/512\s*GB/i, '256GB'),
+          variantLabel: '256GB',
+          storage: '256GB',
+          ram: baseRam,
+          price: Math.round(baseMRP * 0.88),
+          salePrice: Math.max(1000, Math.round(baseSale - (baseSale > 60000 ? 15000 : 8000))),
+          images: product.images
+        },
+        {
+          id: product.id,
+          name: product.name,
+          variantLabel: '512GB',
+          storage: '512GB',
+          ram: baseRam,
+          price: baseMRP,
+          salePrice: baseSale,
+          images: product.images
+        },
+        {
+          id: `${product.id}-1tb`,
+          name: product.name.replace(/512\s*GB/i, '1TB'),
+          variantLabel: '1TB',
+          storage: '1TB',
+          ram: baseRam,
+          price: Math.round(baseMRP * 1.2),
+          salePrice: Math.round(baseSale + (baseSale > 60000 ? 25000 : 12000)),
+          images: product.images
+        }
+      ];
+    }
+
+    return siblings;
+  }, [products, product]);
+
   const [quantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
   const [pincode, setPincode] = useState('211002');
   const [pincodeCheckMessage, setPincodeCheckMessage] = useState('Delivery by tomorrow, 11 PM | Free');
 
-  // Coupon state
+  // Coupon State
   const [couponInput, setCouponInput] = useState('');
   const [couponFeedback, setCouponFeedback] = useState(null);
 
-  const handleApplyCouponCode = (code) => {
-    if (!code || !code.trim()) return;
+  const handleApplyCoupon = (codeToApply) => {
+    const code = (codeToApply || couponInput).trim();
+    if (!code) return;
     const res = applyCoupon(code);
     setCouponFeedback(res);
     if (res.success) {
@@ -51,12 +223,18 @@ export default function ProductDetails() {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSuccess, setReviewSuccess] = useState(false);
 
-  // oxlint-disable react/set-state-in-effect
+  // Initialize or reset selectedVariant when product changes
   useEffect(() => {
+    if (product?.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      const def = product.variants.find((v) => v.isDefault);
+      setSelectedVariant(def || product.variants[0]);
+    } else {
+      setSelectedVariant(null);
+    }
     if (product?.images?.[0]) {
       setSelectedImage(product.images[0]);
     }
-  }, [product]);
+  }, [product?.id]);
 
   if (!product) {
     return (
@@ -69,9 +247,32 @@ export default function ProductDetails() {
     );
   }
 
+  // Active item merges base product with the clicked variant
+  const currentItem = useMemo(() => {
+    if (!selectedVariant) return product;
+    return {
+      ...product,
+      ...selectedVariant,
+      id: selectedVariant.id || (selectedVariant.storage ? `${product.id}-${selectedVariant.storage}` : product.id),
+      name: selectedVariant.name || (
+        selectedVariant.variantLabel
+          ? `${product.name.replace(/\([^)]*\)/g, '').trim()} (${selectedVariant.variantLabel})`
+          : product.name
+      ),
+      price: Number(selectedVariant.price || product.price),
+      salePrice: Number(selectedVariant.salePrice || selectedVariant.price || product.salePrice || product.price),
+      stock: selectedVariant.stock !== undefined ? Number(selectedVariant.stock) : product.stock,
+      sku: selectedVariant.sku || product.sku,
+      images: (selectedVariant.images && selectedVariant.images.length > 0) ? selectedVariant.images : product.images
+    };
+  }, [product, selectedVariant]);
+
+  const currentPrice = currentItem.price;
+  const currentSalePrice = currentItem.salePrice || currentItem.price;
+
   const inWishlist = isInWishlist(product.id);
-  const discountPercent = product.price > product.salePrice
-    ? Math.round(((product.price - product.salePrice) / product.price) * 100)
+  const discountPercent = currentPrice > currentSalePrice
+    ? Math.round(((currentPrice - currentSalePrice) / currentPrice) * 100)
     : 0;
 
   const productReviews = reviews.filter((r) => r.productId === product.id);
@@ -79,14 +280,30 @@ export default function ProductDetails() {
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
+  // Handler for clicking any variant option (0ms instant update without page jump)
+  const handleSelectVariant = (variant) => {
+    setSelectedVariant(variant);
+    if (variant.images?.[0]) {
+      setSelectedImage(variant.images[0]);
+    }
+    // Quietly update URL in browser bar so bookmarking works without triggering route jump to top
+    const targetId = variant.id;
+    if (targetId && typeof window !== 'undefined' && window.history?.replaceState) {
+      const newUrl = `/product/${targetId}`;
+      if (window.location.pathname !== newUrl) {
+        window.history.replaceState(null, '', newUrl);
+      }
+    }
+  };
+
   const handleAddToCart = () => {
-    addItem(product, quantity);
+    addItem(currentItem, quantity);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
 
   const handleBuyNow = () => {
-    addItem(product, quantity);
+    addItem(currentItem, quantity);
     navigate('/checkout');
   };
 
@@ -133,32 +350,45 @@ export default function ProductDetails() {
         
         {/* LEFT COLUMN: MULTI-IMAGE GALLERY & STICKY CTA BUTTONS (5 COLS) */}
         <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-40">
-          <div className="flex flex-col-reverse sm:flex-row gap-4">
+          <div className="flex flex-col-reverse sm:flex-row gap-3.5">
             
             {/* Thumbnail Strip */}
             {product.images && product.images.length > 1 && (
-              <div className="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-y-auto max-h-96">
+              <div className="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-y-auto max-h-[460px] pb-1 sm:pb-0">
                 {product.images.map((img, idx) => (
                   <button
                     key={idx}
+                    type="button"
                     onClick={() => setSelectedImage(img)}
                     onMouseEnter={() => setSelectedImage(img)}
-                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-lg p-1 bg-white border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                      selectedImage === img ? 'border-amber-500 shadow-xs' : 'border-gray-200 hover:border-gray-400'
+                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl p-1.5 bg-white border-2 flex items-center justify-center flex-shrink-0 transition-all cursor-pointer ${
+                      selectedImage === img
+                        ? 'border-amber-500 ring-2 ring-amber-400/50 shadow-xs'
+                        : 'border-gray-200 hover:border-gray-400 bg-gray-50/50'
                     }`}
                   >
-                    <img src={img} alt="" className="max-h-full max-w-full object-contain" />
+                    <img 
+                      src={img} 
+                      alt={`View ${idx + 1}`} 
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        e.target.src = '/products/apple-iphone16-pro-max.png';
+                      }}
+                    />
                   </button>
                 ))}
               </div>
             )}
 
             {/* Main Stage Image */}
-            <div className="relative flex-grow aspect-square bg-white border border-gray-100 rounded-xl p-6 flex items-center justify-center overflow-hidden">
+            <div className="relative flex-grow aspect-square bg-white border border-gray-200/90 rounded-2xl p-4 sm:p-6 flex items-center justify-center overflow-hidden shadow-xs group">
               <img
                 src={selectedImage || product.images?.[0]}
-                alt={product.name}
-                className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-110"
+                alt={currentItem.name}
+                className="w-full h-full max-h-[460px] object-contain transition-transform duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  e.target.src = '/products/apple-iphone16-pro-max.png';
+                }}
               />
 
               {/* Wishlist Heart */}
@@ -215,7 +445,7 @@ export default function ProductDetails() {
           {/* Instant Order on WhatsApp Button */}
           <a
             href={`https://wa.me/919935102727?text=${encodeURIComponent(
-              `*AUDIO DEN - NEW ORDER INQUIRY*\n\nHello Audio Den, I would like to order:\n*Model:* ${product.name}\n*Brand:* ${product.brand}\n*Price:* ₹${(product.salePrice || product.price).toLocaleString('en-IN')}\n*SKU:* ${product.sku || 'N/A'}\n\nPlease confirm stock availability, best offer, and doorstep delivery in Prayagraj!`
+              `*AUDIO DEN - NEW ORDER INQUIRY*\n\nHello Audio Den, I would like to order:\n*Model:* ${currentItem.name}\n*Brand:* ${currentItem.brand}\n*Price:* ₹${currentSalePrice.toLocaleString('en-IN')}\n*Variant:* ${currentItem.variantLabel || currentItem.storage || 'Standard'}\n*SKU:* ${currentItem.sku || 'N/A'}\n\nPlease confirm stock availability, best offer, and doorstep delivery in Prayagraj!`
             )}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -232,10 +462,10 @@ export default function ProductDetails() {
           {/* Brand & Title */}
           <div>
             <span className="text-xs font-bold text-amber-600 uppercase tracking-wider block mb-1">
-              {product.brand} Official
+              {currentItem.brand || product.brand} Official
             </span>
             <h1 className="text-xl sm:text-2xl font-heading font-black text-slate-900 leading-snug">
-              {product.name}
+              {currentItem.name}
             </h1>
           </div>
 
@@ -258,29 +488,115 @@ export default function ProductDetails() {
           </div>
 
           {/* Pricing Block */}
-          <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-1">
-            <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">
-              Special Showroom Price
-            </div>
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl font-black text-slate-950">
-                ₹{(product.salePrice || product.price).toLocaleString('en-IN')}
-              </span>
-              {product.price > product.salePrice && (
-                <>
-                  <span className="text-sm text-gray-400 line-through">
-                    ₹{product.price.toLocaleString('en-IN')}
+          {(() => {
+            const basePrice = currentSalePrice;
+            const couponSavings = coupon
+              ? (coupon.discountPercent
+                  ? Math.round((basePrice * coupon.discountPercent) / 100)
+                  : Math.min(coupon.discountAmount || 0, basePrice))
+              : 0;
+            const finalPayable = Math.max(0, basePrice - couponSavings);
+
+            return (
+              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-1.5 shadow-xs">
+                <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide flex items-center justify-between">
+                  <span>Special Showroom Price</span>
+                  {coupon && (
+                    <span className="bg-emerald-600 text-white font-mono text-[10px] font-black px-2 py-0.5 rounded shadow-2xs">
+                      COUPON {coupon.code} ACTIVE
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  <span className="text-3xl font-black text-slate-950">
+                    ₹{finalPayable.toLocaleString('en-IN')}
                   </span>
-                  <span className="text-sm font-bold text-emerald-700">
-                    {discountPercent}% off
-                  </span>
-                </>
-              )}
+                  {(couponSavings > 0 || currentPrice > basePrice) && (
+                    <span className="text-sm text-gray-400 line-through font-semibold">
+                      ₹{(couponSavings > 0 ? basePrice : currentPrice).toLocaleString('en-IN')}
+                    </span>
+                  )}
+                  {couponSavings > 0 && (
+                    <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
+                      Save ₹{couponSavings.toLocaleString('en-IN')} with {coupon.code}!
+                    </span>
+                  )}
+                  {discountPercent > 0 && !couponSavings && (
+                    <span className="text-sm font-bold text-emerald-700">
+                      {discountPercent}% off
+                    </span>
+                  )}
+                </div>
+
+                {coupon && (
+                  <div className="pt-2 mt-1 border-t border-dashed border-emerald-300 flex items-center justify-between text-xs">
+                    <span className="text-emerald-800 font-bold flex items-center gap-1">
+                      <Tag className="w-3.5 h-3.5 text-emerald-600" /> Promo Code ({coupon.code}) Applied:
+                    </span>
+                    <span className="text-emerald-700 font-black">
+                      -₹{couponSavings.toLocaleString('en-IN')} OFF
+                    </span>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-gray-500">
+                  Inclusive of all taxes. Free doorstep shipping in Prayagraj.
+                </p>
+              </div>
+            );
+          })()}
+
+          {/* SELECT RAM & STORAGE VARIANT - DYNAMIC GB SELECTOR WITH LIVE PRICE UPDATE */}
+          {allVariants && allVariants.length > 0 && (
+            <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-gray-50 border border-slate-200/90 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 ring-4 ring-blue-100"></span>
+                  Select RAM & Storage Variant ({allVariants.length} Available)
+                </span>
+                <span className="text-[11px] font-bold text-slate-600 bg-white border border-gray-200 px-2.5 py-0.5 rounded-full shadow-2xs">
+                  Active: <strong className="text-slate-950 font-black">{currentItem.variantLabel || `${currentItem.ram || ''} ${currentItem.storage || ''}`.trim() || 'Standard'}</strong>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {allVariants.map((variant) => {
+                  const isCurrent = (variant.id && variant.id === currentItem.id) ||
+                                    (variant.storage === currentItem.storage && variant.ram === currentItem.ram);
+                  const vPrice = variant.salePrice || variant.price;
+                  const vLabel = variant.variantLabel || `${variant.ram ? `${variant.ram} + ` : ''}${variant.storage || ''}`.trim() || 'Standard';
+
+                  return (
+                    <button
+                      key={variant.id || variant.storage}
+                      type="button"
+                      onClick={() => handleSelectVariant(variant)}
+                      className={`p-3 rounded-xl border-2 text-left transition-all duration-150 cursor-pointer relative overflow-hidden group ${
+                        isCurrent
+                          ? 'bg-slate-950 text-white border-slate-950 shadow-md ring-2 ring-amber-400'
+                          : 'bg-white text-slate-800 border-gray-200 hover:border-amber-400 hover:bg-amber-50/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-black ${isCurrent ? 'text-amber-400' : 'text-slate-900 group-hover:text-amber-700'}`}>
+                          {vLabel}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[9px] uppercase font-black bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded font-sans tracking-wide">
+                            Selected
+                          </span>
+                        )}
+                      </div>
+                      <div className={`text-xs font-extrabold ${isCurrent ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                        ₹{vPrice.toLocaleString('en-IN')}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <p className="text-[11px] text-gray-500">
-              Inclusive of all taxes. Free doorstep shipping in Prayagraj.
-            </p>
-          </div>
+          )}
 
           {/* SPECIAL PRODUCT OFFER & DEALS HIGHLIGHT BOX */}
           {product.hasOffer && (
@@ -337,7 +653,7 @@ export default function ProductDetails() {
             </div>
 
             <p className="text-xs text-slate-700 leading-relaxed font-medium">
-              Take this device home today with monthly installments starting at just <strong className="text-slate-950 font-black">₹{Math.round((product.salePrice || product.price) / 12).toLocaleString('en-IN')}/month</strong>. 100% paperless approval in 3 minutes at our New Katra showroom.
+              Take this device home today with monthly installments starting at just <strong className="text-slate-950 font-black">₹{Math.round(currentSalePrice / 12).toLocaleString('en-IN')}/month</strong> (or just <strong className="text-emerald-700 font-black">₹{Math.round(currentSalePrice / 365).toLocaleString('en-IN')}/day</strong>). 100% paperless approval in 3 minutes at our New Katra showroom.
             </p>
 
             <button
@@ -349,115 +665,87 @@ export default function ProductDetails() {
             </button>
           </div>
 
-          {/* Flipkart / Amazon Style Available Bank Offers & Apply Coupon */}
-          <div className="space-y-3 p-4 bg-gradient-to-br from-amber-50/50 via-white to-orange-50/30 rounded-xl border border-amber-200/80 shadow-2xs">
+          {/* APPLY COUPON SECTION */}
+          <div className="p-4 rounded-xl border border-dashed border-amber-300 bg-amber-50/40 space-y-3 shadow-xs">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-amber-600" /> Available Offers & Apply Coupon
-              </h4>
-              {coupon ? (
-                <span className="text-[10px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full flex items-center gap-1">
-                  ✓ {coupon.code} Active
-                </span>
-              ) : (
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                  Instant Savings
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black flex-shrink-0 shadow-xs">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-900 text-xs uppercase tracking-wide block">
+                    Apply Coupon & Offers
+                  </span>
+                  <span className="text-[11px] text-gray-500">
+                    Get extra instant discount on this item
+                  </span>
+                </div>
+              </div>
+              {coupon && (
+                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                  <Check className="w-3 h-3 text-emerald-600" /> Applied
                 </span>
               )}
             </div>
 
-            {/* Quick Apply Coupon Pills */}
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-1.5 items-center">
-                <span className="text-[11px] text-gray-500 font-semibold">Tap to apply:</span>
-                {[
-                  { code: 'WELCOME10', label: '10% Off First Order' },
-                  { code: 'AUDIODEN5', label: '5% Instant Store Discount' },
-                  { code: 'OFFER1000', label: 'Flat ₹1,000 Off' }
-                ].map((c) => (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => handleApplyCouponCode(c.code)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-mono font-bold transition-all ${
-                      coupon?.code === c.code
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-2xs'
-                        : 'border-dashed border-amber-400 bg-white hover:bg-amber-100/70 text-slate-800'
-                    }`}
-                    title={`Click to apply ${c.code}`}
-                  >
-                    <span>🏷️ {c.code}</span>
-                    <span className="text-[10px] font-sans text-amber-900 font-medium">({c.label})</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Coupon Input Form */}
-              <div className="flex gap-2 pt-1">
-                <input
-                  type="text"
-                  value={couponInput}
-                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                  placeholder="Enter promo / coupon code..."
-                  className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 font-mono uppercase bg-white shadow-2xs"
-                />
+            {coupon ? (
+              <div className="bg-white p-3 rounded-lg border border-emerald-200 flex items-center justify-between gap-2 shadow-2xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-slate-900 truncate">
+                      Code <span className="text-emerald-700 font-mono tracking-wider">{coupon.code}</span> Applied!
+                    </p>
+                    <p className="text-[11px] text-emerald-700 font-medium truncate">
+                      {coupon.title || 'Special Discount'} ({coupon.discountPercent ? `${coupon.discountPercent}% OFF` : `₹${coupon.discountAmount} OFF`})
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => handleApplyCouponCode(couponInput)}
-                  className="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-lg flex-shrink-0 transition-colors shadow-2xs"
+                  onClick={handleRemoveCoupon}
+                  className="px-2.5 py-1 text-[11px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 rounded border border-red-200 transition-colors flex-shrink-0"
                 >
-                  Apply Coupon
+                  Remove
                 </button>
               </div>
-
-              {/* Feedback and Active Coupon Banner */}
-              {couponFeedback && (
-                <div className={`p-2 rounded-lg text-xs font-semibold flex items-center justify-between transition-all ${
-                  couponFeedback.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' : 'bg-red-50 text-red-700 border border-red-200'
-                }`}>
-                  <span>{couponFeedback.message}</span>
-                  {coupon && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveCoupon}
-                      className="text-[11px] text-red-600 hover:text-red-800 underline font-bold ml-2"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {coupon && !couponFeedback && (
-                <div className="p-2 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center justify-between">
-                  <span>✓ Coupon <strong>{coupon.code}</strong> is applied to your order!</span>
+            ) : (
+              <div className="space-y-2">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleApplyCoupon();
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    placeholder="Enter Coupon Code (e.g. DIWALI20)"
+                    className="flex-grow px-3 py-2 text-xs uppercase tracking-wider font-mono font-bold border border-gray-300 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 bg-white"
+                  />
                   <button
-                    type="button"
-                    onClick={handleRemoveCoupon}
-                    className="text-[11px] text-red-600 hover:text-red-800 underline font-bold"
+                    type="submit"
+                    disabled={!couponInput.trim()}
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-amber-400 font-bold text-xs rounded-lg transition-colors flex-shrink-0 shadow-xs"
                   >
-                    Remove
+                    Apply
                   </button>
-                </div>
-              )}
-            </div>
+                </form>
 
-            {/* Standard Bank & Showroom Offers */}
-            <div className="space-y-1.5 text-xs text-slate-700 pt-2 border-t border-gray-200/80">
-              <div className="flex items-start gap-2">
-                <span className="font-bold text-emerald-700 flex-shrink-0">Bank Offer:</span>
-                <span>5% Cashback on Axis Bank & HDFC Credit Cards on orders above ₹10,000.</span>
+                {couponFeedback && (
+                  <p className={`text-xs font-semibold ${couponFeedback.success ? 'text-emerald-700' : 'text-red-600'}`}>
+                    {couponFeedback.message}
+                  </p>
+                )}
               </div>
-              <div className="flex items-start gap-2">
-                <span className="font-bold text-emerald-700 flex-shrink-0">No Cost EMI:</span>
-                <span>Avail No Cost EMI starting at ₹{(Math.round((product.salePrice || product.price) / 12)).toLocaleString('en-IN')}/month on all major banks.</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="font-bold text-emerald-700 flex-shrink-0">Showroom Exchange:</span>
-                <span>Extra ₹2,000 off on exchange of old smartphone or TV at Audio Den store.</span>
-              </div>
-            </div>
+            )}
           </div>
+
+
 
           {/* Pincode & Delivery Checker */}
           <div className="p-4 rounded-xl border border-gray-200 space-y-2 bg-white">
@@ -633,7 +921,7 @@ export default function ProductDetails() {
 
       {/* Brand Finance & EMI Modal */}
       <BrandFinanceModal
-        product={product}
+        product={currentItem}
         isOpen={isFinanceOpen}
         onClose={() => setIsFinanceOpen(false)}
       />

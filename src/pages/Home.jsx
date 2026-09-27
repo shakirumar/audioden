@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -9,14 +9,67 @@ import {
 } from 'lucide-react';
 import { useProductStore } from '../store/useProductStore';
 import ProductCard from '../components/ProductCard';
-import OffersSection from '../components/OffersSection';
+import { getModelWiseProducts } from '../utils/productUtils';
 
 export default function Home() {
   const { products, categories, brands, banners } = useProductStore();
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Active banners
-  const activeBanners = banners.filter((b) => b.enabled !== false);
+  // Active banners: only real, in-stock available models with real-time price & stock enrichment
+  const activeBanners = useMemo(() => {
+    const fakeBannerIds = new Set([
+      'banner-oppo-reno16c',
+      'banner-oneplus-nord6',
+      'banner-oneplus-15',
+      'banner-apple-17',
+      'banner-oneplus-n6x',
+      'banner-samsung'
+    ]);
+
+    const seen = new Set();
+    const list = [];
+
+    for (const b of (banners || [])) {
+      if (b.enabled === false) continue;
+      if (fakeBannerIds.has(b.id)) continue;
+
+      // Match linked product in catalog
+      const prodId = b.link?.startsWith('/product/') ? b.link.replace('/product/', '').trim() : null;
+      const matchedProduct = prodId ? (products || []).find((p) => p.id === prodId) : null;
+
+      // Filter: ONLY available in stock!
+      if (matchedProduct) {
+        const isOutOfStock = matchedProduct.inStock === false || (matchedProduct.stock !== undefined && Number(matchedProduct.stock) <= 0);
+        if (isOutOfStock) continue;
+      }
+
+      // Deduplicate by normalized model name
+      const dedupeKey = (b.subtitle || b.title || b.id).toLowerCase().replace(/\s+/g, '');
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      list.push({
+        ...b,
+        priceText: matchedProduct?.salePrice
+          ? `₹${Number(matchedProduct.salePrice).toLocaleString('en-IN')}`
+          : b.priceText,
+        mrpText: matchedProduct?.price && Number(matchedProduct.price) > Number(matchedProduct.salePrice || 0)
+          ? `₹${Number(matchedProduct.price).toLocaleString('en-IN')}`
+          : b.mrpText,
+        image: (matchedProduct?.images && matchedProduct.images[0]) || b.image,
+        inStock: true
+      });
+    }
+
+    return list;
+  }, [banners, products]);
+
+  // Ensure currentSlide is within bounds
+  useEffect(() => {
+    if (currentSlide >= activeBanners.length && activeBanners.length > 0) {
+      setCurrentSlide(0);
+    }
+  }, [activeBanners.length, currentSlide]);
 
   // Multi-product brand slider ref
   const brandSliderRef = useRef(null);
@@ -44,11 +97,16 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // 1. Dynamic New Arrivals (Guaranteed to show newly added products from Admin)
-  const newArrivals = products
-    .filter((p) => p.isNewArrival || p.id.startsWith('prod-'))
-    .slice(0, 8);
-  const displayedNewArrivals = newArrivals.length > 0 ? newArrivals : products.slice(0, 8);
+  // Model-wise grouped products (prevents duplicate cards for different storage capacities of the same model)
+  const modelWiseProducts = useMemo(() => getModelWiseProducts(products), [products]);
+
+  // 1. Dynamic New Arrivals (Guaranteed to show newly added models from Admin)
+  const newArrivals = useMemo(() => {
+    return modelWiseProducts
+      .filter((p) => p.isNewArrival || p.id.startsWith('prod-'))
+      .slice(0, 8);
+  }, [modelWiseProducts]);
+  const displayedNewArrivals = newArrivals.length > 0 ? newArrivals : modelWiseProducts.slice(0, 8);
 
   // 2. Dynamic Unique Brands derived from products + brands list
   const availableBrandNames = Array.from(
@@ -62,8 +120,8 @@ export default function Home() {
   const [activeBrandFilter, setActiveBrandFilter] = useState('all');
 
   const displayedSliderProducts = activeBrandFilter === 'all'
-    ? products.slice(0, 12)
-    : products.filter((p) => p.brand?.toLowerCase() === activeBrandFilter.toLowerCase());
+    ? modelWiseProducts.slice(0, 12)
+    : modelWiseProducts.filter((p) => p.brand?.toLowerCase() === activeBrandFilter.toLowerCase());
 
   const scrollBrandSlider = (direction) => {
     if (brandSliderRef.current) {
@@ -75,10 +133,10 @@ export default function Home() {
   // 3. Dynamic Category Tabs for Electronics Showcase
   const [activeCategoryTab, setActiveCategoryTab] = useState('All');
   const departmentProducts = activeCategoryTab === 'All'
-    ? products.slice(0, 8)
-    : products.filter((p) => p.category?.toLowerCase() === activeCategoryTab.toLowerCase()).slice(0, 8);
+    ? modelWiseProducts.slice(0, 8)
+    : modelWiseProducts.filter((p) => p.category?.toLowerCase() === activeCategoryTab.toLowerCase()).slice(0, 8);
 
-  const flashSaleProducts = products.filter((p) => p.isFlashSale).slice(0, 4);
+  const flashSaleProducts = modelWiseProducts.filter((p) => p.isFlashSale).slice(0, 4);
 
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -88,24 +146,28 @@ export default function Home() {
         
         {/* Brand Jump Tab Bar on Top of Slider */}
         <div className="hidden sm:flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-gray-200 text-xs overflow-x-auto gap-2">
-          <span className="font-black text-slate-500 uppercase text-[10px] tracking-wider whitespace-nowrap pl-2">
-            Featured Models:
+          <span className="font-black text-slate-500 uppercase text-[10px] tracking-wider whitespace-nowrap pl-2 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            In-Stock Models:
           </span>
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            {activeBanners.map((b, idx) => (
-              <button
-                key={b.id}
-                onClick={() => setCurrentSlide(idx)}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                  currentSlide === idx
-                    ? 'bg-slate-900 text-amber-400 shadow-xs'
-                    : 'bg-white text-slate-700 hover:bg-gray-200 border border-gray-200'
-                }`}
-              >
-                <span>{b.brand} {b.subtitle?.split(' ').slice(1, 3).join(' ')}</span>
-                {currentSlide === idx && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
-              </button>
-            ))}
+            {activeBanners.map((b, idx) => {
+              const label = b.subtitle?.replace(new RegExp(`^${b.brand}\\s*`, 'i'), '').split('(')[0].trim() || b.brand;
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                    currentSlide === idx
+                      ? 'bg-slate-900 text-amber-400 shadow-xs'
+                      : 'bg-white text-slate-700 hover:bg-gray-200 border border-gray-200'
+                  }`}
+                >
+                  <span>{b.brand} {label}</span>
+                  {currentSlide === idx && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -165,6 +227,10 @@ export default function Home() {
                         </span>
                         <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px] sm:text-[11px]">
                           Prayagraj Express Delivery
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px] sm:text-[11px] inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                          Available In Stock
                         </span>
                       </div>
 
@@ -273,8 +339,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. EXCLUSIVE SHOWROOM OFFERS & DEALS SECTION */}
-      <OffersSection />
 
       {/* 3. BRAND FINANCE & NO COST EMI SHOWCASE BANNER */}
       <section className="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 rounded-2xl p-6 sm:p-8 text-white border border-blue-900/50 shadow-md">
@@ -349,7 +413,7 @@ export default function Home() {
             to="/shop?sort=newest"
             className="text-blue-600 hover:text-blue-800 font-bold text-xs flex items-center gap-1 self-start sm:self-auto"
           >
-            <span>View All New Releases ({products.length})</span>
+            <span>View All New Releases ({modelWiseProducts.length})</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -409,6 +473,70 @@ export default function Home() {
                   </h4>
                   <span className="text-[10px] text-gray-400">
                     {count} {count === 1 ? 'Product' : 'Products'}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 5B. OFFICIAL AUTHORIZED BRANDS SHOWCASE (Synced with Admin Brands in Real Time) */}
+      <section className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-amber-400 font-black text-[10px] uppercase tracking-wider">
+                Official Brands
+              </span>
+              <h2 className="text-base sm:text-xl font-heading font-black text-slate-900">
+                Authorized Showroom Brand Partners
+              </h2>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Official warranty, GST bill & direct distributor pricing from global electronics leaders
+            </p>
+          </div>
+          <Link to="/shop" className="text-xs font-bold text-blue-600 hover:underline">
+            All Brands ({brands.length}) →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
+          {(brands || []).filter((b) => Boolean(b && b.name)).map((brand) => {
+            const count = (products || []).filter(
+              (p) => (p.brand || '').toLowerCase() === (brand.name || '').toLowerCase()
+            ).length;
+
+            return (
+              <Link
+                key={brand.id || brand.name}
+                to={`/shop?brand=${encodeURIComponent(brand.name)}`}
+                className="group p-3 rounded-xl border border-gray-200 hover:border-amber-400 bg-white hover:shadow-xs transition-all flex flex-col items-center text-center justify-between space-y-2.5"
+              >
+                <div className="w-14 h-14 rounded-xl bg-gray-50 p-2 flex items-center justify-center border border-gray-100 group-hover:scale-105 transition-transform relative overflow-hidden flex-shrink-0">
+                  {brand.logo ? (
+                    <img
+                      src={brand.logo}
+                      alt={brand.name}
+                      className="max-h-full max-w-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement.querySelector('.brand-home-fallback');
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className={`brand-home-fallback w-10 h-10 rounded-lg bg-slate-900 text-amber-400 font-black text-xs items-center justify-center ${brand.logo ? 'hidden' : 'flex'}`}>
+                    {(brand.name || 'AD').substring(0, 2).toUpperCase()}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs group-hover:text-amber-600 transition-colors line-clamp-1">
+                    {brand.name}
+                  </h4>
+                  <span className="text-[10px] text-gray-400 block font-medium">
+                    {count} {count === 1 ? 'Model' : 'Models'}
                   </span>
                 </div>
               </Link>
