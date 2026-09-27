@@ -31,6 +31,7 @@ export default function Home() {
     for (const b of (banners || [])) {
       if (b.enabled === false) continue;
       if (fakeBannerIds.has(b.id)) continue;
+      if (b.brand?.toLowerCase() === 'oneplus' || b.id?.toLowerCase().includes('oneplus')) continue;
 
       // Match linked product in catalog
       const prodId = b.link?.startsWith('/product/') ? b.link.replace('/product/', '').trim() : null;
