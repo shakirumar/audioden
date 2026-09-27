@@ -15,8 +15,8 @@ import {
 import { supabase, isSupabaseConfigured } from './supabase';
 import { extractModelFamily } from '../utils/productUtils';
 
-export const DB_KEY = 'audio_den_catalog_v15';
-export const VERSION_KEY = 'audio_den_catalog_version_v15';
+export const DB_KEY = 'audio_den_catalog_v16';
+export const VERSION_KEY = 'audio_den_catalog_version_v16';
 
 // Valid columns in Supabase products table schema
 const SUPABASE_PRODUCT_COLUMNS = new Set([

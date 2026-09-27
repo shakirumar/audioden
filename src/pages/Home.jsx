@@ -18,7 +18,6 @@ export default function Home() {
   // Active banners: only real, in-stock available models with real-time price & stock enrichment
   const activeBanners = useMemo(() => {
     const fakeBannerIds = new Set([
-      'banner-oppo-reno16c',
       'banner-oneplus-nord6',
       'banner-oneplus-15',
       'banner-apple-17',
